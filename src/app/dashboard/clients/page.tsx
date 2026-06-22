@@ -1,0 +1,265 @@
+'use client'
+
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { clients, projects, retainers } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
+import type { ClientResponse, ProjectResponse, RetainerStatus } from '@/lib/types'
+
+function RetainerBar({ status }: { status: RetainerStatus }) {
+  const used = status.percentUsed !== undefined ? Math.round(status.percentUsed) : null
+  return (
+    <div className="mt-2 space-y-1">
+      {status.retainerHours ? (
+        <>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{status.actualHoursThisMonth.toFixed(1)}h / {status.retainerHours}h</span>
+            {used !== null && <span>{used}%</span>}
+          </div>
+          <Progress
+            value={Math.min(used ?? 0, 100)}
+            className={status.isOver ? '[&>div]:bg-destructive' : (used ?? 0) > 80 ? '[&>div]:bg-amber-500' : ''}
+          />
+        </>
+      ) : (
+        <p className="text-xs text-muted-foreground">{status.actualHoursThisMonth.toFixed(1)}h this month · no retainer</p>
+      )}
+    </div>
+  )
+}
+
+export default function ClientsPage() {
+  const { token } = useAuthStore()
+  const queryClient = useQueryClient()
+
+  const [createClientOpen, setCreateClientOpen] = useState(false)
+  const [retainerClientId, setRetainerClientId] = useState<number | null>(null)
+  const [projectClientId, setProjectClientId] = useState<number | null>(null)
+  const [clientForm, setClientForm] = useState({ name: '', contactEmail: '' })
+  const [projectName, setProjectName] = useState('')
+  const [retainerForm, setRetainerForm] = useState({ monthlyHours: '', effectiveFrom: new Date().toISOString().slice(0, 10) })
+
+  const { data: clientList = [], isLoading } = useQuery({
+    queryKey: ['clients', token],
+    queryFn: () => clients.list(token!),
+    enabled: !!token,
+  })
+
+  const { data: clientDetails = [] } = useQuery({
+    queryKey: ['clients-with-retainer', token, clientList.map((c) => c.clientId).join(',')],
+    queryFn: () => Promise.all(clientList.map((c) => clients.get(token!, c.clientId))),
+    enabled: !!token && clientList.length > 0,
+    refetchInterval: 120_000,
+  })
+
+  const { data: projectList = [] } = useQuery({
+    queryKey: ['projects', token],
+    queryFn: () => projects.list(token!),
+    enabled: !!token,
+  })
+
+  const createClientMutation = useMutation({
+    mutationFn: () => clients.create(token!, { name: clientForm.name, contactEmail: clientForm.contactEmail || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
+      toast.success('Client created')
+      setCreateClientOpen(false)
+      setClientForm({ name: '', contactEmail: '' })
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const createProjectMutation = useMutation({
+    mutationFn: () => projects.create(token!, { clientId: projectClientId!, name: projectName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('Project created')
+      setProjectClientId(null)
+      setProjectName('')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const retainerMutation = useMutation({
+    mutationFn: () =>
+      retainers.create(token!, {
+        clientId: retainerClientId!,
+        monthlyHours: Number(retainerForm.monthlyHours),
+        effectiveFrom: retainerForm.effectiveFrom,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients-with-retainer'] })
+      toast.success('Retainer set')
+      setRetainerClientId(null)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const detailMap = new Map(clientDetails.map((d) => [d.client.clientId, d]))
+  const projectsByClient = (clientId: number) => projectList.filter((p) => p.clientId === clientId && p.isActive)
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage clients, projects and retainers</p>
+        </div>
+        <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>
+      </div>
+
+      {isLoading && <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>}
+
+      {!isLoading && clientList.length === 0 && (
+        <div className="text-center py-16 border border-dashed border-border rounded-xl">
+          <p className="text-muted-foreground text-sm mb-3">No clients yet</p>
+          <Button onClick={() => setCreateClientOpen(true)}>+ Create your first client</Button>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {clientList.filter((c) => c.isActive).map((client) => {
+          const detail = detailMap.get(client.clientId)
+          const clientProjects = projectsByClient(client.clientId)
+          return (
+            <div key={client.clientId} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              {/* Client header */}
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground">{client.name}</h3>
+                    {client.contactEmail && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{client.contactEmail}</p>
+                    )}
+                  </div>
+                  <Badge variant={detail?.retainerStatus.isOver ? 'destructive' : 'secondary'} className="ml-2 flex-shrink-0">
+                    {detail?.retainerStatus.isOver ? 'Over' : detail?.retainerStatus.retainerHours ? 'Retainer' : 'No retainer'}
+                  </Badge>
+                </div>
+                {detail && <RetainerBar status={detail.retainerStatus} />}
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      setProjectClientId(client.clientId)
+                      setProjectName('')
+                    }}
+                  >
+                    + Add project
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      setRetainerClientId(client.clientId)
+                      setRetainerForm({ monthlyHours: '', effectiveFrom: new Date().toISOString().slice(0, 10) })
+                    }}
+                  >
+                    Set retainer
+                  </Button>
+                </div>
+              </div>
+
+              {/* Projects */}
+              {clientProjects.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="px-5 py-3 space-y-1">
+                    {clientProjects.map((p) => (
+                      <div key={p.projectId} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                        {p.name}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Create client dialog */}
+      <Dialog open={createClientOpen} onOpenChange={(v) => !v && setCreateClientOpen(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>New client</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Name</Label>
+              <Input placeholder="Acme Corp" value={clientForm.name} onChange={(e) => setClientForm((f) => ({ ...f, name: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Contact email <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input type="email" placeholder="contact@acme.com" value={clientForm.contactEmail} onChange={(e) => setClientForm((f) => ({ ...f, contactEmail: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateClientOpen(false)}>Cancel</Button>
+            <Button onClick={() => createClientMutation.mutate()} disabled={!clientForm.name.trim() || createClientMutation.isPending}>
+              {createClientMutation.isPending ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add project dialog */}
+      <Dialog open={projectClientId !== null} onOpenChange={(v) => !v && setProjectClientId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Add project</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Project name</Label>
+              <Input placeholder="e.g. Diary Management" value={projectName} onChange={(e) => setProjectName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && projectName.trim() && createProjectMutation.mutate()} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProjectClientId(null)}>Cancel</Button>
+            <Button onClick={() => createProjectMutation.mutate()} disabled={!projectName.trim() || createProjectMutation.isPending}>
+              {createProjectMutation.isPending ? 'Adding…' : 'Add project'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set retainer dialog */}
+      <Dialog open={retainerClientId !== null} onOpenChange={(v) => !v && setRetainerClientId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Set retainer</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Monthly hours</Label>
+              <Input type="number" placeholder="60" value={retainerForm.monthlyHours} onChange={(e) => setRetainerForm((f) => ({ ...f, monthlyHours: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Effective from</Label>
+              <Input type="date" value={retainerForm.effectiveFrom} onChange={(e) => setRetainerForm((f) => ({ ...f, effectiveFrom: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRetainerClientId(null)}>Cancel</Button>
+            <Button onClick={() => retainerMutation.mutate()} disabled={!retainerForm.monthlyHours || retainerMutation.isPending}>
+              {retainerMutation.isPending ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

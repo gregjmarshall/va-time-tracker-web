@@ -61,6 +61,14 @@ export interface ProjectResponse {
   createdAt: string
 }
 
+export interface TimerSessionResponse {
+  sessionId: number
+  accumulatedSeconds: number
+  entryIds: number[]
+  description: string
+  projectId: number | null
+}
+
 export interface TimeEntryResponse {
   entryId: number
   workspaceId: number

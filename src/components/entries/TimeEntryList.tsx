@@ -52,7 +52,7 @@ export function TimeEntryList({ entries, projects }: Props) {
     <>
       <div className="divide-y divide-border">
         {entries.map((entry) => {
-          const project = projectMap.get(entry.projectId)
+          const project = entry.projectId ? projectMap.get(entry.projectId) : undefined
           return (
             <div key={entry.entryId} className="flex items-center gap-4 py-3 group">
               {/* Time range */}

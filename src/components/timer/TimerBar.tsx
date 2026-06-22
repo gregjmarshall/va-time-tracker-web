@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { timeEntries, suggestions as suggestionsApi } from '@/lib/api'
+import { timeEntries, timerSession as timerSessionApi, suggestions as suggestionsApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { ProjectResponse, ClientResponse, TimeEntryResponse } from '@/lib/types'
+import type { ProjectResponse, ClientResponse, TimeEntryResponse, TimerSessionResponse } from '@/lib/types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
@@ -13,6 +13,61 @@ function formatElapsed(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
   return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':')
 }
+
+const AFFIRMATIONS = [
+  "You're doing great — keep it up! 🌟",
+  "Every minute counts. You've got this! 💪",
+  "Focused and productive — that's you! 🎯",
+  "Amazing work happening right now! ✨",
+  "You're making real progress today! 🚀",
+  "Deep work is powerful work. Keep going! 🧠",
+  "Your effort is paying off, one second at a time! ⏱️",
+  "Look at you, getting things done! 🙌",
+  "Consistency is a superpower — and you have it! ⚡",
+  "Every task you finish is a win! 🏆",
+  "You showed up and that already matters! 🌈",
+  "In the zone! This is where magic happens! 🪄",
+  "Small steps, big results. Keep moving! 👟",
+  "Your clients are lucky to have you! 💼",
+  "Flow state unlocked! Don't stop now! 🔓",
+  "You're building something great! 🏗️",
+  "Today's effort is tomorrow's success! 🌅",
+  "Crushing it, one minute at a time! 🔥",
+  "You're the kind of professional people rely on! 🤝",
+  "Hard work like this doesn't go unnoticed! 👀",
+  "You make it look easy — but we know the effort! 😎",
+  "Stay with it — the best work comes from persistence! 🌱",
+  "Time well spent is time well lived! ☀️",
+  "You're investing in your best work right now! 💡",
+  "Momentum is building — feel it! 🏄",
+  "Great things are assembled minute by minute! 🔧",
+  "The world works better because you work hard! 🌍",
+  "Your dedication is truly inspiring! 🌻",
+  "One focused hour beats ten distracted ones! 🎧",
+  "You're on a roll — don't break the streak! 🎲",
+  "Excellence is a habit, and you're proving it! 📈",
+  "Another block of quality time — nice work! 🧱",
+  "Whatever you're building, it matters! 💎",
+  "You bring real value to every project! 💫",
+  "The timer is running, and so are you! 🏃",
+  "Proud of you for showing up and doing the work! 🫶",
+  "Dialled in and delivering — that's the energy! ⚙️",
+  "Your focus right now is a gift to your future self! 🎁",
+  "Every tracked minute tells a story of effort! 📖",
+  "You're not just working — you're making an impact! 🌊",
+  "Solid, reliable, excellent. That's you! 🪨",
+  "The best professionals track their time — and here you are! 📊",
+  "Keep that momentum going — you're unstoppable! 🚂",
+  "Real growth happens in moments exactly like this! 🌿",
+  "You're turning time into results. That's powerful! ⚡",
+  "Your work ethic is something to be proud of! 🦁",
+  "Another session, another step forward! 👣",
+  "You make the work look purposeful — because it is! 🎨",
+  "Stay curious, stay focused, keep creating! 🔭",
+  "Quiet effort, loud results. That's your style! 🎶",
+  "You're writing the story of a productive day! 📝",
+  "Tick tock — and you're making every second count! ⌚",
+]
 
 // ── Two-step client → project dropdown ───────────────────────────────────────
 
@@ -181,10 +236,32 @@ function ForceProjectPicker({ clientList, projectList, onSelect, isPending }: {
   )
 }
 
+// ── Pause session persistence ─────────────────────────────────────────────────
+
+const PAUSE_KEY = 'va-timer-paused-session'
+
+interface PausedSession {
+  accumuledSeconds: number
+  nullProjectEntryIds: number[]
+  description: string
+  selectedProjectId: number | null
+}
+
+function savePause(s: PausedSession) {
+  try { localStorage.setItem(PAUSE_KEY, JSON.stringify(s)) } catch { /* */ }
+}
+function loadPause(): PausedSession | null {
+  try { const r = localStorage.getItem(PAUSE_KEY); return r ? JSON.parse(r) : null } catch { return null }
+}
+function clearPause() {
+  try { localStorage.removeItem(PAUSE_KEY) } catch { /* */ }
+}
+
 // ── Main TimerBar ─────────────────────────────────────────────────────────────
 
 interface Props {
   activeEntry: TimeEntryResponse | null
+  pausedSession: TimerSessionResponse | null
   projectList: ProjectResponse[]
   clientList: ClientResponse[]
   onChanged: () => void
@@ -192,28 +269,45 @@ interface Props {
 
 type TimerState = 'idle' | 'running' | 'paused'
 
-export function TimerBar({ activeEntry, projectList, clientList, onChanged }: Props) {
+export function TimerBar({ activeEntry, pausedSession, projectList, clientList, onChanged }: Props) {
   const { token } = useAuthStore()
   const queryClient = useQueryClient()
 
   // ── Timer state ───────────────────────────────────────────────────
-  const [timerState, setTimerState] = useState<TimerState>(() =>
-    activeEntry?.isRunning ? 'running' : 'idle'
-  )
-  // Accumulated seconds from completed pause runs (used as display base)
-  const accumulatedRef = useRef(0)
-  // Entry IDs that were stopped with null project (need updating on final stop)
-  const nullProjectEntryIdsRef = useRef<number[]>([])
+  // Resolve initial paused state: backend prop is authoritative; localStorage is a
+  // fast-path fallback for same-tab navigation (avoids a brief "idle" flash).
+  const [initialPause] = useState<PausedSession | null>(() => {
+    if (activeEntry?.isRunning) return null
+    if (pausedSession) {
+      return {
+        accumuledSeconds: pausedSession.accumulatedSeconds,
+        nullProjectEntryIds: pausedSession.entryIds,
+        description: pausedSession.description,
+        selectedProjectId: pausedSession.projectId,
+      }
+    }
+    return loadPause()
+  })
+
+  const [timerState, setTimerState] = useState<TimerState>(() => {
+    if (activeEntry?.isRunning) return 'running'
+    return initialPause ? 'paused' : 'idle'
+  })
+  const accumulatedRef = useRef(initialPause?.accumuledSeconds ?? 0)
+  const nullProjectEntryIdsRef = useRef<number[]>(initialPause?.nullProjectEntryIds ?? [])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const [elapsed, setElapsed] = useState(0)
-  const [description, setDescription] = useState(activeEntry?.description ?? '')
+  const [elapsed, setElapsed] = useState(initialPause?.accumuledSeconds ?? 0)
+  const [description, setDescription] = useState(
+    activeEntry?.description ?? initialPause?.description ?? ''
+  )
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
-    activeEntry?.projectId ?? null
+    activeEntry?.projectId ?? initialPause?.selectedProjectId ?? null
   )
   const [showStopDialog, setShowStopDialog] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionList, setSuggestionList] = useState<string[]>([])
+  const [affirmationIdx, setAffirmationIdx] = useState(() => Math.floor(Math.random() * AFFIRMATIONS.length))
 
   // Sync local state when a new active entry arrives (e.g. page reload with running timer)
   useEffect(() => {
@@ -269,8 +363,12 @@ export function TimerBar({ activeEntry, projectList, clientList, onChanged }: Pr
       projectId: selectedProjectId ?? undefined,
     }),
     onSuccess: () => {
+      clearSessionMutation.mutate()
       queryClient.invalidateQueries({ queryKey: ['active-timer'] })
       onChanged()
+      if (accumulatedRef.current === 0) {
+        setAffirmationIdx(Math.floor(Math.random() * AFFIRMATIONS.length))
+      }
       setTimerState('running')
       toast.success(accumulatedRef.current > 0 ? 'Resumed' : 'Timer started')
     },
@@ -281,12 +379,23 @@ export function TimerBar({ activeEntry, projectList, clientList, onChanged }: Pr
   const pauseMutation = useMutation({
     mutationFn: () => timeEntries.stop(token!),
     onSuccess: (stoppedEntry) => {
-      // Freeze elapsed and accumulate
       accumulatedRef.current = elapsed
-      // Track if this entry has no project (may need updating on final stop)
       if (!stoppedEntry.projectId) {
         nullProjectEntryIdsRef.current.push(stoppedEntry.entryId)
       }
+      const session = {
+        accumuledSeconds: accumulatedRef.current,
+        nullProjectEntryIds: nullProjectEntryIdsRef.current,
+        description,
+        selectedProjectId,
+      }
+      savePause(session)
+      saveSessionMutation.mutate({
+        accumulatedSeconds: accumulatedRef.current,
+        entryIds: nullProjectEntryIdsRef.current,
+        description,
+        projectId: selectedProjectId,
+      })
       queryClient.invalidateQueries({ queryKey: ['active-timer'] })
       onChanged()
       setTimerState('paused')
@@ -311,9 +420,11 @@ export function TimerBar({ activeEntry, projectList, clientList, onChanged }: Pr
       }
     },
     onSuccess: () => {
+      clearSessionMutation.mutate()
       queryClient.invalidateQueries({ queryKey: ['active-timer'] })
       queryClient.invalidateQueries({ queryKey: ['time-entries'] })
       queryClient.invalidateQueries({ queryKey: ['time-entries-week'] })
+      queryClient.invalidateQueries({ queryKey: ['time-entries-recent'] })
       onChanged()
       accumulatedRef.current = 0
       nullProjectEntryIdsRef.current = []
@@ -325,6 +436,20 @@ export function TimerBar({ activeEntry, projectList, clientList, onChanged }: Pr
       toast.success('Entry saved')
     },
     onError: (err: Error) => toast.error(err.message),
+  })
+
+  // Persist pause session to backend
+  const saveSessionMutation = useMutation({
+    mutationFn: (body: { accumulatedSeconds: number; entryIds: number[]; description: string; projectId?: number | null }) =>
+      timerSessionApi.save(token!, body),
+  })
+
+  const clearSessionMutation = useMutation({
+    mutationFn: () => timerSessionApi.clear(token!),
+    onSuccess: () => {
+      clearPause()
+      queryClient.invalidateQueries({ queryKey: ['timer-session'] })
+    },
   })
 
   // Update active entry (description / project while running)
@@ -494,6 +619,13 @@ export function TimerBar({ activeEntry, projectList, clientList, onChanged }: Pr
           </button>
         )}
       </div>
+
+      {/* Affirmation */}
+      {isRunning && (
+        <p className="text-center text-sm text-primary/60 font-medium mt-6">
+          {AFFIRMATIONS[affirmationIdx]}
+        </p>
+      )}
 
       {/* Force-project dialog */}
       <Dialog open={showStopDialog} onOpenChange={(v) => { if (!v) setShowStopDialog(false) }}>

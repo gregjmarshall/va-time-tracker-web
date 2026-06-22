@@ -8,9 +8,9 @@ import isoWeek from 'dayjs/plugin/isoWeek'
 import { ManualEntryDialog } from '@/components/entries/ManualEntryDialog'
 import { TimerBar } from '@/components/timer/TimerBar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { timeEntries, projects as projectsApi, clients as clientsApi } from '@/lib/api'
+import { timeEntries, projects as projectsApi, clients as clientsApi, timerSession as timerSessionApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { ProjectResponse, TimeEntryResponse } from '@/lib/types'
+import type { ProjectResponse, TimeEntryResponse, TimerSessionResponse } from '@/lib/types'
 
 dayjs.extend(isoWeek)
 
@@ -143,6 +143,13 @@ export function WorkerDashboard() {
     refetchInterval: 30_000,
   })
 
+  const { data: pausedSession = null } = useQuery<TimerSessionResponse | null>({
+    queryKey: ['timer-session', token],
+    queryFn: async () => { try { return await timerSessionApi.get(token!) } catch { return null } },
+    enabled: !!token,
+    staleTime: Infinity,
+  })
+
   const { data: projectList = [] } = useQuery({
     queryKey: ['projects', token],
     queryFn: () => projectsApi.list(token!),
@@ -162,6 +169,13 @@ export function WorkerDashboard() {
     refetchInterval: 10_000,
   })
 
+  const { data: recentData } = useQuery({
+    queryKey: ['time-entries-recent', token],
+    queryFn: () => timeEntries.list(token!, { size: 20 }),
+    enabled: !!token,
+    refetchInterval: 10_000,
+  })
+
   const { data: weekData } = useQuery({
     queryKey: ['time-entries-week', token, weekStart],
     queryFn: () => timeEntries.list(token!, { from: weekStart, to: weekEnd, size: 500 }),
@@ -173,6 +187,7 @@ export function WorkerDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['time-entries'] })
       queryClient.invalidateQueries({ queryKey: ['time-entries-week'] })
+      queryClient.invalidateQueries({ queryKey: ['time-entries-recent'] })
       toast.success('Entry deleted')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -194,12 +209,13 @@ export function WorkerDashboard() {
   const recentClients = clientList
     .map((client, idx) => {
       const entries = completedEntries.filter((e) => {
-        const p = projectMap.get(e.projectId)
+        const p = e.projectId ? projectMap.get(e.projectId) : undefined
         return p?.clientId === client.clientId
       })
       if (entries.length === 0) return null
       const secs = entries.reduce((sum, e) => sum + (e.durationSeconds ?? 0), 0)
-      const lastProject = projectMap.get(entries[entries.length - 1].projectId)
+      const lastPid = entries[entries.length - 1].projectId
+      const lastProject = lastPid ? projectMap.get(lastPid) : undefined
       return { client, secs, lastProject, colorIdx: idx }
     })
     .filter(Boolean) as { client: typeof clientList[0]; secs: number; lastProject?: ProjectResponse; colorIdx: number }[]
@@ -208,6 +224,8 @@ export function WorkerDashboard() {
     queryClient.invalidateQueries({ queryKey: ['active-timer'] })
     queryClient.invalidateQueries({ queryKey: ['time-entries'] })
     queryClient.invalidateQueries({ queryKey: ['time-entries-week'] })
+    queryClient.invalidateQueries({ queryKey: ['time-entries-recent'] })
+    queryClient.invalidateQueries({ queryKey: ['timer-session'] })
     refetchActive()
   }
 
@@ -251,15 +269,16 @@ export function WorkerDashboard() {
               {/* Timer bar */}
               <TimerBar
                 activeEntry={activeEntry}
+                pausedSession={pausedSession}
                 projectList={projectList}
                 clientList={clientList}
                 onChanged={handleTimerChanged}
               />
 
-              {/* Today's entries */}
+              {/* Recent entries */}
               <div className="rounded-[32px] glass-card overflow-hidden shadow-2xl">
                 <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
-                  <h2 className="text-lg font-bold tracking-tight">Today&apos;s entries</h2>
+                  <h2 className="text-lg font-bold tracking-tight">Recent entries</h2>
                   <button
                     onClick={() => setManualOpen(true)}
                     className="text-[12px] font-black text-white/60 hover:text-white border border-white/10 rounded-2xl px-5 py-2 hover:bg-white/5 transition-all shadow-sm uppercase tracking-wider"
@@ -267,27 +286,32 @@ export function WorkerDashboard() {
                     + Manual Entry
                   </button>
                 </div>
-                <div className="px-8 pb-4">
-                  {completedEntries.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-20 font-medium">No activity tracked yet today</p>
+                {(() => {
+                  const recentEntries = (recentData?.entries ?? []).filter((e) => !e.isRunning)
+                  return recentEntries.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-20 font-medium px-8">No entries yet</p>
                   ) : (
-                    completedEntries.map((entry, i) => {
-                      const proj = projectMap.get(entry.projectId)
-                      const client = proj ? clientMap.get(proj.clientId) : undefined
-                      return (
-                        <EntryRow
-                          key={entry.entryId}
-                          entry={entry}
-                          project={proj}
-                          clientName={client?.name}
-                          colorIdx={i}
-                          onEdit={() => setEditEntry(entry)}
-                          onDelete={() => deleteMutation.mutate(entry.entryId)}
-                        />
-                      )
-                    })
-                  )}
-                </div>
+                    <div className="overflow-y-auto" style={{ maxHeight: '26rem' }}>
+                      <div className="px-8 pb-4">
+                        {recentEntries.map((entry, i) => {
+                          const proj = entry.projectId ? projectMap.get(entry.projectId) : undefined
+                          const client = proj ? clientMap.get(proj.clientId) : undefined
+                          return (
+                            <EntryRow
+                              key={entry.entryId}
+                              entry={entry}
+                              project={proj}
+                              clientName={client?.name}
+                              colorIdx={i}
+                              onEdit={() => setEditEntry(entry)}
+                              onDelete={() => deleteMutation.mutate(entry.entryId)}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
             </div>

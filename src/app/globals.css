@@ -90,6 +90,11 @@
   to { stroke-dashoffset: -15; }
 }
 
+@keyframes timer-glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
 @layer utilities {
   .glass-card {
     background-color: color-mix(in srgb, var(--card) 40%, transparent);

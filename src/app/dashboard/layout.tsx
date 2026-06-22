@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
+import { timeEntries } from '@/lib/api'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
@@ -78,10 +80,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (mounted && !token) router.replace('/login')
   }, [mounted, token, router])
 
+  const { data: activeTimer } = useQuery({
+    queryKey: ['active-timer', token],
+    queryFn: async () => { try { return await timeEntries.active(token!) } catch { return null } },
+    enabled: !!token,
+    refetchInterval: 30_000,
+  })
+
   if (!mounted || !token || !user) return null
 
   const initials = [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('') || user.email[0].toUpperCase()
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
+  const isTimerRunning = activeTimer?.isRunning ?? false
 
   function handleLogout() {
     clearAuth()
@@ -96,11 +106,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className="h-20 flex items-center px-6 mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center flex-shrink-0 shadow-lg shadow-black/20">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <div className="relative flex-shrink-0">
+              {isTimerRunning && (
+                <svg className="absolute pointer-events-none"
+                  style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)' }}
+                  viewBox="0 0 54 54">
+                  <circle cx="27" cy="27" r="24" fill="none"
+                    stroke="#4ade80" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
+                    style={{
+                      transformOrigin: '27px 27px',
+                      transform: 'rotate(-90deg)',
+                      animation: 'timer-march 1.2s linear infinite, timer-glow 2s ease-in-out infinite',
+                    }}
+                  />
+                </svg>
+              )}
+              <div className={cn(
+                'w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center shadow-lg shadow-black/20 transition-all',
+                isTimerRunning
+                  ? 'bg-white/20 border-white/30'
+                  : 'bg-white/10 border-white/10'
+              )}>
+                {isTimerRunning ? (
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="5" y="4" width="4" height="16" rx="1.5" />
+                    <rect x="15" y="4" width="4" height="16" rx="1.5" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
             </div>
             <span className="font-bold text-white text-base tracking-tight">VA Tracker</span>
           </div>

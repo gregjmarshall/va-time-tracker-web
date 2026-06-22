@@ -12,6 +12,7 @@ import type {
   SlackConfigResponse,
   SummaryReportResponse,
   TimeEntryResponse,
+  TimerSessionResponse,
   UserResponse,
   WorkspaceResponse,
 } from './types'
@@ -205,6 +206,14 @@ export const users = {
     req<UserResponse>('PUT', `/api/users/${userId}`, { token, body }),
   deactivate: (token: string, userId: number) =>
     req<void>('DELETE', `/api/users/${userId}`, { token }),
+}
+
+// Timer session (persisted pause state)
+export const timerSession = {
+  get: (token: string) => req<TimerSessionResponse>('GET', '/api/timer-session', { token }),
+  save: (token: string, body: { accumulatedSeconds: number; entryIds: number[]; description: string; projectId?: number | null }) =>
+    req<TimerSessionResponse>('POST', '/api/timer-session', { token, body }),
+  clear: (token: string) => req<void>('DELETE', '/api/timer-session', { token }),
 }
 
 // Suggestions

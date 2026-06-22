@@ -62,6 +62,12 @@ export const auth = {
     req<{ userId: number; email: string; firstName?: string; lastName?: string; role: string; workspaceId: number; isActive: boolean }>(
       'GET', '/api/auth/me', { token }
     ),
+
+  requestPasswordReset: (email: string) =>
+    req<void>('POST', '/api/auth/request-password-reset', { body: { email } }),
+
+  resetPassword: (token: string, password: string) =>
+    req<void>('POST', '/api/auth/reset-password', { body: { token, password } }),
 }
 
 // Workspace
@@ -86,7 +92,7 @@ export const clients = {
 export const projects = {
   list: (token: string, clientId?: number) =>
     req<ProjectResponse[]>('GET', '/api/projects', { token, query: clientId ? { clientId } : {} }),
-  create: (token: string, body: { clientId: number; name: string }) =>
+  create: (token: string, body: { clientId: number; name: string; budgetHours?: number }) =>
     req<ProjectResponse>('POST', '/api/projects', { token, body }),
   update: (token: string, projectId: number, body: { name?: string; isActive?: boolean }) =>
     req<ProjectResponse>('PUT', `/api/projects/${projectId}`, { token, body }),
@@ -142,14 +148,17 @@ export const timeEntries = {
 
   start: (
     token: string,
-    body: { projectId: number; description: string; roundingMode?: RoundingMode; roundingMinutes?: number; isBillable?: boolean }
+    body: { projectId?: number; description?: string; roundingMode?: RoundingMode; roundingMinutes?: number; isBillable?: boolean }
   ) => req<TimeEntryResponse>('POST', '/api/time-entries/start', {
     token,
     body: { roundingMode: 'NONE', roundingMinutes: 15, isBillable: true, ...body },
   }),
 
-  stop: (token: string) =>
-    req<TimeEntryResponse>('POST', '/api/time-entries/stop', { token }),
+  stop: (token: string, projectId?: number) =>
+    req<TimeEntryResponse>('POST', '/api/time-entries/stop', {
+      token,
+      body: projectId ? { projectId } : undefined,
+    }),
 
   active: (token: string) =>
     req<TimeEntryResponse>('GET', '/api/time-entries/active', { token }),

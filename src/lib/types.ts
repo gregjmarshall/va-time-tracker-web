@@ -57,6 +57,7 @@ export interface ProjectResponse {
   workspaceId: number
   name: string
   isActive: boolean
+  budgetHours?: number
   createdAt: string
 }
 
@@ -64,7 +65,7 @@ export interface TimeEntryResponse {
   entryId: number
   workspaceId: number
   userId: number
-  projectId: number
+  projectId: number | null
   description: string
   startedAt: string
   endedAt?: string

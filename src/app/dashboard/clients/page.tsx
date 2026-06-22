@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { clients, projects, retainers } from '@/lib/api'
+import { clients, projects, retainers, reports } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ClientResponse, ProjectResponse, RetainerStatus } from '@/lib/types'
 
@@ -43,7 +43,8 @@ function RetainerBar({ status }: { status: RetainerStatus }) {
 }
 
 export default function ClientsPage() {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
+  const isVA = user?.role === 'VA'
   const queryClient = useQueryClient()
 
   const [createClientOpen, setCreateClientOpen] = useState(false)
@@ -51,6 +52,8 @@ export default function ClientsPage() {
   const [projectClientId, setProjectClientId] = useState<number | null>(null)
   const [clientForm, setClientForm] = useState({ name: '', contactEmail: '' })
   const [projectName, setProjectName] = useState('')
+  const [projectBudgetHours, setProjectBudgetHours] = useState('')
+  const [projectType, setProjectType] = useState<'ongoing' | 'fixed'>('ongoing')
   const [retainerForm, setRetainerForm] = useState({ monthlyHours: '', effectiveFrom: new Date().toISOString().slice(0, 10) })
 
   const { data: clientList = [], isLoading } = useQuery({
@@ -72,6 +75,15 @@ export default function ClientsPage() {
     enabled: !!token,
   })
 
+  const { data: summaryData } = useQuery({
+    queryKey: ['reports-summary-alltime', token],
+    queryFn: () => reports.summary(token!),
+    enabled: !!token,
+  })
+  const projectHoursMap = new Map(
+    (summaryData?.rows ?? []).map((r) => [r.projectId, r.totalHours])
+  )
+
   const createClientMutation = useMutation({
     mutationFn: () => clients.create(token!, { name: clientForm.name, contactEmail: clientForm.contactEmail || undefined }),
     onSuccess: () => {
@@ -84,12 +96,18 @@ export default function ClientsPage() {
   })
 
   const createProjectMutation = useMutation({
-    mutationFn: () => projects.create(token!, { clientId: projectClientId!, name: projectName }),
+    mutationFn: () => projects.create(token!, {
+      clientId: projectClientId!,
+      name: projectName,
+      budgetHours: projectType === 'fixed' && projectBudgetHours ? Number(projectBudgetHours) : undefined,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       toast.success('Project created')
       setProjectClientId(null)
       setProjectName('')
+      setProjectBudgetHours('')
+      setProjectType('ongoing')
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -111,6 +129,7 @@ export default function ClientsPage() {
 
   const detailMap = new Map(clientDetails.map((d) => [d.client.clientId, d]))
   const projectsByClient = (clientId: number) => projectList.filter((p) => p.clientId === clientId && p.isActive)
+  const assignedClientIds = new Set(projectList.map((p) => p.clientId))
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
@@ -132,7 +151,7 @@ export default function ClientsPage() {
       )}
 
       <div className="space-y-4">
-        {clientList.filter((c) => c.isActive).map((client) => {
+        {clientList.filter((c) => c.isActive && (!isVA || assignedClientIds.has(c.clientId))).map((client) => {
           const detail = detailMap.get(client.clientId)
           const clientProjects = projectsByClient(client.clientId)
           return (
@@ -181,13 +200,33 @@ export default function ClientsPage() {
               {clientProjects.length > 0 && (
                 <>
                   <Separator />
-                  <div className="px-5 py-3 space-y-1">
-                    {clientProjects.map((p) => (
-                      <div key={p.projectId} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
-                        {p.name}
-                      </div>
-                    ))}
+                  <div className="px-5 py-3 space-y-3">
+                    {clientProjects.map((p) => {
+                      const logged = projectHoursMap.get(p.projectId) ?? 0
+                      const pct = p.budgetHours ? Math.min((logged / p.budgetHours) * 100, 100) : null
+                      const isOver = p.budgetHours ? logged > p.budgetHours : false
+                      return (
+                        <div key={p.projectId}>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                            <span className="flex-1">{p.name}</span>
+                            {p.budgetHours && (
+                              <span className={`text-xs tabular-nums ${isOver ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                {logged.toFixed(1)}h / {p.budgetHours}h
+                              </span>
+                            )}
+                          </div>
+                          {pct !== null && (
+                            <div className="ml-3.5 mt-1.5">
+                              <Progress
+                                value={pct}
+                                className={`h-1 ${isOver ? '[&>div]:bg-destructive' : pct > 80 ? '[&>div]:bg-amber-500' : ''}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </>
               )}
@@ -220,18 +259,58 @@ export default function ClientsPage() {
       </Dialog>
 
       {/* Add project dialog */}
-      <Dialog open={projectClientId !== null} onOpenChange={(v) => !v && setProjectClientId(null)}>
+      <Dialog open={projectClientId !== null} onOpenChange={(v) => { if (!v) { setProjectClientId(null); setProjectType('ongoing'); setProjectBudgetHours('') } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Add project</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Project name</Label>
-              <Input placeholder="e.g. Diary Management" value={projectName} onChange={(e) => setProjectName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && projectName.trim() && createProjectMutation.mutate()} />
+              <Input
+                placeholder="e.g. Diary Management"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && projectName.trim() && createProjectMutation.mutate()}
+              />
             </div>
+            <div className="space-y-1.5">
+              <Label>Project type</Label>
+              <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+                <button
+                  type="button"
+                  onClick={() => setProjectType('ongoing')}
+                  className={`flex-1 py-2 transition-colors ${projectType === 'ongoing' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Ongoing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProjectType('fixed')}
+                  className={`flex-1 py-2 transition-colors ${projectType === 'fixed' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Fixed hours
+                </button>
+              </div>
+            </div>
+            {projectType === 'fixed' && (
+              <div className="space-y-1.5">
+                <Label>Budget hours</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 40"
+                  min="1"
+                  value={projectBudgetHours}
+                  onChange={(e) => setProjectBudgetHours(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setProjectClientId(null)}>Cancel</Button>
-            <Button onClick={() => createProjectMutation.mutate()} disabled={!projectName.trim() || createProjectMutation.isPending}>
+            <Button variant="outline" onClick={() => { setProjectClientId(null); setProjectType('ongoing'); setProjectBudgetHours('') }}>Cancel</Button>
+            <Button
+              onClick={() => createProjectMutation.mutate()}
+              disabled={!projectName.trim() || (projectType === 'fixed' && !projectBudgetHours) || createProjectMutation.isPending}
+            >
               {createProjectMutation.isPending ? 'Adding…' : 'Add project'}
             </Button>
           </DialogFooter>

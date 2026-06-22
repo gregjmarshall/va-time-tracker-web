@@ -138,6 +138,17 @@ export default function LoginPage() {
                 />
               </div>
 
+              {mode === 'login' && (
+                <div className="text-right -mt-1">
+                  <a
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
+              )}
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading
                   ? mode === 'login' ? 'Signing in…' : 'Creating account…'

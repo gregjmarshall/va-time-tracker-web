@@ -86,6 +86,10 @@
   }
 }
 
+@keyframes timer-march {
+  to { stroke-dashoffset: -15; }
+}
+
 @layer utilities {
   .glass-card {
     background-color: color-mix(in srgb, var(--card) 40%, transparent);

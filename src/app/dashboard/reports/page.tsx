@@ -292,7 +292,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Date range pills */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-3">
         {RANGES.map((r) => (
           <button
             key={r.key}
@@ -308,32 +308,19 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      {/* Client filter pills */}
+      {/* Client filter */}
       {clientList && clientList.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button
-            onClick={() => setClientId(null)}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
-              clientId === null
-                ? 'bg-white/15 text-white border-white/30 shadow-sm'
-                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
-            }`}
+        <div className="mb-8">
+          <select
+            value={clientId ?? ''}
+            onChange={e => setClientId(e.target.value ? Number(e.target.value) : null)}
+            className="px-3 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
           >
-            All clients
-          </button>
-          {clientList.map(c => (
-            <button
-              key={c.clientId}
-              onClick={() => setClientId(c.clientId)}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
-                clientId === c.clientId
-                  ? 'bg-white/15 text-white border-white/30 shadow-sm'
-                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
+            <option value="">All clients</option>
+            {clientList.map(c => (
+              <option key={c.clientId} value={c.clientId}>{c.name}</option>
+            ))}
+          </select>
         </div>
       )}
 

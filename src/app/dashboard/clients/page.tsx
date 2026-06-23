@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -42,14 +42,32 @@ function RetainerBar({ status }: { status: RetainerStatus }) {
   )
 }
 
+const RECENT_KEY = 'va-recent-clients'
+function loadRecent(): number[] {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') } catch { return [] }
+}
+function pushRecent(id: number) {
+  const prev = loadRecent().filter(i => i !== id)
+  localStorage.setItem(RECENT_KEY, JSON.stringify([id, ...prev].slice(0, 5)))
+}
+
 export default function ClientsPage() {
   const { token, user } = useAuthStore()
   const isVA = user?.role === 'VA'
   const queryClient = useQueryClient()
 
+  const [search, setSearch] = useState('')
+  const [recentIds, setRecentIds] = useState<number[]>([])
   const [createClientOpen, setCreateClientOpen] = useState(false)
   const [retainerClientId, setRetainerClientId] = useState<number | null>(null)
   const [projectClientId, setProjectClientId] = useState<number | null>(null)
+
+  useEffect(() => { setRecentIds(loadRecent()) }, [])
+
+  function touchClient(id: number) {
+    pushRecent(id)
+    setRecentIds(loadRecent())
+  }
   const [clientForm, setClientForm] = useState({ name: '', contactEmail: '' })
   const [projectName, setProjectName] = useState('')
   const [projectBudgetHours, setProjectBudgetHours] = useState('')
@@ -131,14 +149,35 @@ export default function ClientsPage() {
   const projectsByClient = (clientId: number) => projectList.filter((p) => p.clientId === clientId && p.isActive)
   const assignedClientIds = new Set(projectList.map((p) => p.clientId))
 
+  const activeClients = clientList.filter(c => c.isActive && (!isVA || assignedClientIds.has(c.clientId)))
+  const q = search.trim().toLowerCase()
+  const displayedClients = q
+    ? activeClients.filter(c => c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
+    : recentIds.length > 0
+      ? activeClients.filter(c => recentIds.includes(c.clientId)).sort((a, b) => recentIds.indexOf(a.clientId) - recentIds.indexOf(b.clientId))
+      : activeClients.slice(0, 5)
+
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage clients, projects and retainers</p>
         </div>
         <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-6">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" strokeLinecap="round"/>
+        </svg>
+        <Input
+          placeholder={`Search ${activeClients.length} clients…`}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {isLoading && <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>}
@@ -150,8 +189,17 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {!q && activeClients.length > 0 && (
+        <p className="text-xs text-muted-foreground mb-3">
+          {recentIds.length > 0 ? 'Recently accessed' : 'Most recent'} · search to find all {activeClients.length} clients
+        </p>
+      )}
+      {q && displayedClients.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-12">No clients match &quot;{search}&quot;</p>
+      )}
+
       <div className="space-y-4">
-        {clientList.filter((c) => c.isActive && (!isVA || assignedClientIds.has(c.clientId))).map((client) => {
+        {displayedClients.map((client) => {
           const detail = detailMap.get(client.clientId)
           const clientProjects = projectsByClient(client.clientId)
           return (
@@ -176,6 +224,7 @@ export default function ClientsPage() {
                     size="sm"
                     className="text-xs"
                     onClick={() => {
+                      touchClient(client.clientId)
                       setProjectClientId(client.clientId)
                       setProjectName('')
                     }}
@@ -187,6 +236,7 @@ export default function ClientsPage() {
                     size="sm"
                     className="text-xs"
                     onClick={() => {
+                      touchClient(client.clientId)
                       setRetainerClientId(client.clientId)
                       setRetainerForm({ monthlyHours: '', effectiveFrom: new Date().toISOString().slice(0, 10) })
                     }}

@@ -552,11 +552,11 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
               style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)' }}
               viewBox="0 0 86 86">
               <circle cx="43" cy="43" r="40" fill="none"
-                stroke="#7c5cf6" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
+                stroke="#4ade80" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
                 style={{
                   transformOrigin: '43px 43px',
                   transform: 'rotate(-90deg)',
-                  animation: 'timer-march 1.2s linear infinite',
+                  animation: 'timer-march 1.2s linear infinite, timer-glow 2s ease-in-out infinite',
                 }}
               />
             </svg>

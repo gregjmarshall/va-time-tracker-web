@@ -79,7 +79,7 @@ export default function LoginPage() {
               <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">VA Tracker</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">dot time</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {mode === 'login' ? 'Sign in to your workspace' : 'Create your account'}
           </p>

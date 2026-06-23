@@ -140,7 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </div>
             </div>
-            <span className="font-bold text-white text-base tracking-tight">VA Tracker</span>
+            <span className="font-bold text-white text-base tracking-tight">dot time</span>
           </div>
         </div>
 

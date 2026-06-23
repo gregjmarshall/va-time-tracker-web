@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
@@ -35,41 +35,62 @@ const DOT_COLORS = [
 
 // ── Weekly Bar Chart ──────────────────────────────────────────────────────────
 
-function WeeklyChart({ dailyHours }: { dailyHours: number[] }) {
+function WeeklyChart({ dailyHours, liveElapsedHours }: { dailyHours: number[], liveElapsedHours: number }) {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const todayIdx = dayjs().isoWeekday() - 1
-  const max = Math.max(...dailyHours, 4)
-  const weekTotal = dailyHours.reduce((a, b) => a + b, 0)
+  const liveDailyHours = dailyHours.map((h, i) => i === todayIdx ? h + liveElapsedHours : h)
+  const max = Math.max(...liveDailyHours, 0.5)
+  const weekTotal = liveDailyHours.reduce((a, b) => a + b, 0)
 
   return (
     <div>
-      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-6">Weekly Overview</p>
-      <div className="flex items-end gap-2.5 mb-6" style={{ height: 100 }}>
-        {dailyHours.map((h, i) => {
-          const pct = (h / max) * 100
+      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Weekly Overview</p>
+
+      {/* Bar area */}
+      <div className="flex items-end gap-2" style={{ height: 96 }}>
+        {liveDailyHours.map((h, i) => {
+          const pct = Math.max((h / max) * 100, h > 0 ? 6 : 3)
           const isToday = i === todayIdx
+          const label = h <= 0 ? null : h >= 1
+            ? (h % 1 < 0.1 ? `${Math.round(h)}h` : `${h.toFixed(1)}h`)
+            : `${Math.round(h * 60)}m`
           return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-3" style={{ height: 140 }}>
-              <div className="w-full flex items-end flex-1">
-                <div
-                  className="w-full rounded-lg transition-all duration-500"
-                  style={{
-                    height: `${Math.max(pct, 5)}%`,
-                    background: isToday
-                      ? 'linear-gradient(180deg, #664ec2 0%, #7c5cf6 100%)'
-                      : h > 0 ? 'rgba(102, 78, 194, 0.4)' : 'rgba(102, 78, 194, 0.1)',
-                    boxShadow: isToday ? '0 4px 12px rgba(124, 92, 246, 0.4)' : 'none',
-                  }}
-                />
-              </div>
-              <span className={`text-[11px] font-bold ${isToday ? 'text-white' : 'text-muted-foreground/50'}`}>
-                {days[i]}
-              </span>
+            <div key={i} className="flex-1 h-full relative flex items-end">
+              {label && (
+                <span
+                  className="absolute left-0 right-0 text-center text-[9px] font-bold text-muted-foreground/70 leading-none"
+                  style={{ bottom: `calc(${pct}% + 4px)` }}
+                >
+                  {label}
+                </span>
+              )}
+              <div
+                className="w-full rounded-md transition-all duration-500"
+                style={{
+                  height: `${pct}%`,
+                  background: isToday
+                    ? 'linear-gradient(180deg, #664ec2 0%, #7c5cf6 100%)'
+                    : h > 0 ? 'rgba(102,78,194,0.45)' : 'rgba(102,78,194,0.1)',
+                  boxShadow: isToday && h > 0 ? '0 4px 12px rgba(124,92,246,0.4)' : 'none',
+                }}
+              />
             </div>
           )
         })}
       </div>
-      <div className="flex items-center justify-between pt-5 border-t border-border/50">
+
+      {/* Day labels */}
+      <div className="flex gap-2 mt-2 mb-5">
+        {days.map((d, i) => (
+          <div key={i} className="flex-1 flex justify-center">
+            <span className={`text-[11px] font-bold ${i === todayIdx ? 'text-white' : 'text-muted-foreground/50'}`}>
+              {d}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-border/50">
         <span className="text-xs font-medium text-muted-foreground">This Week</span>
         <span className="text-sm font-bold">{formatDuration(weekTotal * 3600)}</span>
       </div>
@@ -142,6 +163,15 @@ export function WorkerDashboard() {
     enabled: !!token,
     refetchInterval: 30_000,
   })
+
+  const [liveElapsed, setLiveElapsed] = useState(0)
+  useEffect(() => {
+    if (!activeEntry?.isRunning) { setLiveElapsed(0); return }
+    const tick = () => setLiveElapsed(Math.floor((Date.now() - new Date(activeEntry.startedAt).getTime()) / 1000))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [activeEntry?.isRunning, activeEntry?.startedAt])
 
   const { data: pausedSession = null } = useQuery<TimerSessionResponse | null>({
     queryKey: ['timer-session', token],
@@ -325,14 +355,30 @@ export function WorkerDashboard() {
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
-                      <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner">
-                        <svg className="w-5 h-5 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                      <div className="relative w-11 h-11 flex-shrink-0">
+                        {activeEntry?.isRunning && (
+                          <svg className="absolute pointer-events-none"
+                            style={{ inset: -6, width: 'calc(100% + 12px)', height: 'calc(100% + 12px)' }}
+                            viewBox="0 0 52 52">
+                            <circle cx="26" cy="26" r="23" fill="none"
+                              stroke="#4ade80" strokeWidth="2" strokeDasharray="10 5" strokeLinecap="round"
+                              style={{
+                                transformOrigin: '26px 26px',
+                                transform: 'rotate(-90deg)',
+                                animation: 'timer-march 1.2s linear infinite, timer-glow 2s ease-in-out infinite',
+                              }}
+                            />
+                          </svg>
+                        )}
+                        <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner">
+                          <svg className="w-5 h-5 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
                       </div>
                       <span className="text-[15px] font-bold text-muted-foreground/70">Time Tracked</span>
                     </div>
-                    <span className="text-xl font-bold tabular-nums tracking-tight">{formatDuration(todaySeconds)}</span>
+                    <span className="text-xl font-bold tabular-nums tracking-tight">{formatDuration(todaySeconds + liveElapsed)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
@@ -358,7 +404,7 @@ export function WorkerDashboard() {
 
               {/* Weekly chart */}
               <div className="rounded-[32px] glass-card p-8 shadow-xl">
-                <WeeklyChart dailyHours={dailyHours} />
+                <WeeklyChart dailyHours={dailyHours} liveElapsedHours={liveElapsed / 3600} />
               </div>
 
             </div>

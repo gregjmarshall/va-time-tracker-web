@@ -274,17 +274,6 @@ export function WorkerDashboard() {
             </svg>
             <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-[#7c5cf6] rounded-full border-2 border-[#121432]" />
           </button>
-          <button
-            className="flex items-center gap-3 px-6 py-3 rounded-2xl font-black text-[14px] text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#7c5cf6]/20"
-            style={{ background: 'linear-gradient(135deg, #664ec2 0%, #7c5cf6 100%)' }}
-          >
-            <div className="w-5 h-5 flex items-center justify-center bg-white/20 rounded-lg">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6zm9 12H6v-8h12v8z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            Start Break
-          </button>
         </div>
       </div>
 

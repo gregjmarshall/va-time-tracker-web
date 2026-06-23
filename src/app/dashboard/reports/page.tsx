@@ -232,13 +232,23 @@ export default function ReportsPage() {
   const { token, user } = useAuthStore()
   const [tab, setTab] = useState('summary')
   const [rangeKey, setRangeKey] = useState<RangeKey>('mtd')
+  const [clientId, setClientId] = useState<number | null>(null)
 
   const range = resolveRange(rangeKey)
   const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || ''
 
+  const { data: clientList } = useQuery({
+    queryKey: ['clients', token],
+    queryFn: () => clients.list(token!),
+    enabled: !!token,
+    staleTime: 5 * 60_000,
+  })
+
+  const selectedClient = clientList?.find(c => c.clientId === clientId) ?? null
+
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['reports-summary', token, rangeKey],
-    queryFn: () => reports.summary(token!, { from: range.from, to: range.to }),
+    queryKey: ['reports-summary', token, rangeKey, clientId],
+    queryFn: () => reports.summary(token!, { from: range.from, to: range.to, ...(clientId ? { clientId } : {}) }),
     enabled: !!token,
   })
 
@@ -255,12 +265,12 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">My Time</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{range.label}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{range.label}{selectedClient ? ` · ${selectedClient.name}` : ''}</p>
         </div>
         {rows.length > 0 && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => exportCsv(rows, range.label)}
+              onClick={() => exportCsv(rows, selectedClient ? `${range.label} - ${selectedClient.name}` : range.label)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -269,7 +279,7 @@ export default function ReportsPage() {
               CSV
             </button>
             <button
-              onClick={() => exportPdf(rows, range.label, userName)}
+              onClick={() => exportPdf(rows, selectedClient ? `${range.label} - ${selectedClient.name}` : range.label, userName)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-all shadow-sm shadow-primary/30"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -282,7 +292,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Date range pills */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-4">
         {RANGES.map((r) => (
           <button
             key={r.key}
@@ -297,6 +307,35 @@ export default function ReportsPage() {
           </button>
         ))}
       </div>
+
+      {/* Client filter pills */}
+      {clientList && clientList.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-8">
+          <button
+            onClick={() => setClientId(null)}
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+              clientId === null
+                ? 'bg-white/15 text-white border-white/30 shadow-sm'
+                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+            }`}
+          >
+            All clients
+          </button>
+          {clientList.map(c => (
+            <button
+              key={c.clientId}
+              onClick={() => setClientId(c.clientId)}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                clientId === c.clientId
+                  ? 'bg-white/15 text-white border-white/30 shadow-sm'
+                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6">

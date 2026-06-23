@@ -162,9 +162,9 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage clients, projects and retainers</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{isVA ? 'Your assigned clients and projects' : 'Manage clients, projects and retainers'}</p>
         </div>
-        <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>
+        {!isVA && <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>}
       </div>
 
       {/* Search */}
@@ -185,7 +185,7 @@ export default function ClientsPage() {
       {!isLoading && clientList.length === 0 && (
         <div className="text-center py-16 border border-dashed border-border rounded-xl">
           <p className="text-muted-foreground text-sm mb-3">No clients yet</p>
-          <Button onClick={() => setCreateClientOpen(true)}>+ Create your first client</Button>
+          {!isVA && <Button onClick={() => setCreateClientOpen(true)}>+ Create your first client</Button>}
         </div>
       )}
 
@@ -218,7 +218,7 @@ export default function ClientsPage() {
                   </Badge>
                 </div>
                 {detail && <RetainerBar status={detail.retainerStatus} />}
-                <div className="mt-4 flex gap-2">
+                {!isVA && <div className="mt-4 flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -243,7 +243,7 @@ export default function ClientsPage() {
                   >
                     Set retainer
                   </Button>
-                </div>
+                </div>}
               </div>
 
               {/* Projects */}

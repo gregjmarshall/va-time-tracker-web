@@ -15,15 +15,17 @@ import { auth, users, projects as projectsApi, clients as clientsApi } from '@/l
 import { useAuthStore } from '@/stores/auth'
 import type { UserResponse } from '@/lib/types'
 
-// ── Add Worker Dialog ─────────────────────────────────────────────────────────
+// ── Add User Dialog ───────────────────────────────────────────────────────────
 
-function AddWorkerDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (email: string) => void }) {
+function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; onClose: () => void; onCreated: (email: string) => void }) {
   const { user: currentUser } = useAuthStore()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+
+  const label = role === 'VA' ? 'worker' : 'admin'
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -33,10 +35,10 @@ function AddWorkerDialog({ onClose, onCreated }: { onClose: () => void; onCreate
         password,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
-        role: 'VA',
+        role,
       }),
     onSuccess: () => {
-      toast.success(`Worker account created for ${email}`)
+      toast.success(`${role === 'VA' ? 'Worker' : 'Admin'} account created for ${email}`)
       onCreated(email)
     },
     onError: (err: Error) => setError(err.message),
@@ -54,7 +56,7 @@ function AddWorkerDialog({ onClose, onCreated }: { onClose: () => void; onCreate
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add worker</DialogTitle>
+          <DialogTitle>Add {label}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
@@ -74,13 +76,13 @@ function AddWorkerDialog({ onClose, onCreated }: { onClose: () => void; onCreate
           <div className="space-y-1.5">
             <Label htmlFor="password">Temporary password</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 characters" required />
-            <p className="text-xs text-muted-foreground">Share this with the worker — they can update it later.</p>
+            <p className="text-xs text-muted-foreground">Share this with the {label} — they can update it later.</p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Creating…' : 'Create worker'}
+              {createMutation.isPending ? 'Creating…' : `Create ${label}`}
             </Button>
           </DialogFooter>
         </form>
@@ -193,6 +195,7 @@ export default function UsersPage() {
   const { token, user: currentUser } = useAuthStore()
   const queryClient = useQueryClient()
   const [addWorkerOpen, setAddWorkerOpen] = useState(false)
+  const [addAdminOpen, setAddAdminOpen] = useState(false)
   const [assignWorker, setAssignWorker] = useState<UserResponse | null>(null)
 
   const { data: userList = [], isLoading } = useQuery({
@@ -234,7 +237,10 @@ export default function UsersPage() {
           <h1 className="text-2xl font-semibold">Team</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage workers and their project access</p>
         </div>
-        <Button onClick={() => setAddWorkerOpen(true)}>+ Add worker</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setAddAdminOpen(true)}>+ Add admin</Button>
+          <Button onClick={() => setAddWorkerOpen(true)}>+ Add worker</Button>
+        </div>
       </div>
 
       {/* Workers */}
@@ -357,7 +363,10 @@ export default function UsersPage() {
       </div>
 
       {addWorkerOpen && (
-        <AddWorkerDialog onClose={() => setAddWorkerOpen(false)} onCreated={handleWorkerCreated} />
+        <AddUserDialog role="VA" onClose={() => setAddWorkerOpen(false)} onCreated={handleWorkerCreated} />
+      )}
+      {addAdminOpen && (
+        <AddUserDialog role="MANAGER" onClose={() => setAddAdminOpen(false)} onCreated={() => { setAddAdminOpen(false); queryClient.invalidateQueries({ queryKey: ['users'] }) }} />
       )}
       {assignWorker && (
         <AssignProjectsDialog worker={assignWorker} onClose={() => setAssignWorker(null)} />

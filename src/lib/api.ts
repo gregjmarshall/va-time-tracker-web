@@ -219,6 +219,8 @@ export const clientTeamAccess = {
     req<void>('DELETE', `/api/clients/${clientId}/team-access/${userId}`, { token }),
   activity: (token: string, clientId: number) =>
     req<ClientActivityResponse>('GET', `/api/clients/${clientId}/team-access/activity`, { token }),
+  myClients: (token: string) =>
+    req<{ clientIds: number[] }>('GET', '/api/team-access/my-clients', { token }),
 }
 
 // Timer session (persisted pause state)

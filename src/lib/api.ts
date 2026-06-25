@@ -1,6 +1,7 @@
 import type {
   AuthResponse,
   BillingRateResponse,
+  ClientActivityResponse,
   ClientResponse,
   ClientWithRetainerResponse,
   PagedTimeEntryResponse,
@@ -60,7 +61,7 @@ export const auth = {
     req<AuthResponse>('POST', '/api/auth/register', { body }),
 
   me: (token: string) =>
-    req<{ userId: number; email: string; firstName?: string; lastName?: string; role: string; workspaceId: number; isActive: boolean }>(
+    req<{ userId: number; email: string; firstName?: string; lastName?: string; role: string; workspaceId: number; isActive: boolean; fullVisibility: boolean }>(
       'GET', '/api/auth/me', { token }
     ),
 
@@ -202,10 +203,22 @@ export const billingRates = {
 // Users
 export const users = {
   list: (token: string) => req<UserResponse[]>('GET', '/api/users', { token }),
-  update: (token: string, userId: number, body: { role?: string; isActive?: boolean; firstName?: string; lastName?: string }) =>
+  update: (token: string, userId: number, body: { role?: string; isActive?: boolean; firstName?: string; lastName?: string; fullVisibility?: boolean }) =>
     req<UserResponse>('PUT', `/api/users/${userId}`, { token, body }),
   deactivate: (token: string, userId: number) =>
     req<void>('DELETE', `/api/users/${userId}`, { token }),
+}
+
+// Client team access
+export const clientTeamAccess = {
+  list: (token: string, clientId: number) =>
+    req<{ userIds: number[] }>('GET', `/api/clients/${clientId}/team-access/`, { token }),
+  grant: (token: string, clientId: number, userId: number) =>
+    req<void>('POST', `/api/clients/${clientId}/team-access/${userId}`, { token }),
+  revoke: (token: string, clientId: number, userId: number) =>
+    req<void>('DELETE', `/api/clients/${clientId}/team-access/${userId}`, { token }),
+  activity: (token: string, clientId: number) =>
+    req<ClientActivityResponse>('GET', `/api/clients/${clientId}/team-access/activity`, { token }),
 }
 
 // Timer session (persisted pause state)

@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import Link from 'next/link'
 import { clients, projects, retainers, reports } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ClientResponse, ProjectResponse, RetainerStatus } from '@/lib/types'
@@ -208,7 +209,13 @@ export default function ClientsPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground">{client.name}</h3>
+                    {(user?.role === 'MANAGER' || user?.fullVisibility) ? (
+                      <Link href={`/dashboard/clients/${client.clientId}`} className="font-semibold text-foreground hover:text-primary transition-colors">
+                        {client.name}
+                      </Link>
+                    ) : (
+                      <h3 className="font-semibold text-foreground">{client.name}</h3>
+                    )}
                     {client.contactEmail && (
                       <p className="text-xs text-muted-foreground mt-0.5">{client.contactEmail}</p>
                     )}

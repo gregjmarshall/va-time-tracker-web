@@ -11,6 +11,7 @@ interface AuthUser {
   lastName?: string
   role: Role
   workspaceId: number
+  fullVisibility?: boolean
 }
 
 interface AuthState {

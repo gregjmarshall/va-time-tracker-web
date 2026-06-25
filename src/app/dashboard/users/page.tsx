@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { auth, users, projects as projectsApi, clients as clientsApi } from '@/lib/api'
+import { auth, users, projects as projectsApi, clients as clientsApi, clientTeamAccess } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { UserResponse } from '@/lib/types'
 
@@ -25,7 +25,7 @@ function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; o
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  const label = role === 'VA' ? 'worker' : 'admin'
+  const label = role === 'VA' ? 'team member' : 'admin'
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -38,7 +38,7 @@ function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; o
         role,
       }),
     onSuccess: () => {
-      toast.success(`${role === 'VA' ? 'Worker' : 'Admin'} account created for ${email}`)
+      toast.success(`${role === 'VA' ? 'Team member' : 'Admin'} account created for ${email}`)
       onCreated(email)
     },
     onError: (err: Error) => setError(err.message),
@@ -55,9 +55,7 @@ function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; o
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Add {label}</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Add {label}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -91,11 +89,12 @@ function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; o
   )
 }
 
-// ── Assign Projects Dialog ────────────────────────────────────────────────────
+// ── Assign Dialog (projects + client access) ──────────────────────────────────
 
-function AssignProjectsDialog({ worker, onClose }: { worker: UserResponse; onClose: () => void }) {
+function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () => void }) {
   const { token } = useAuthStore()
   const queryClient = useQueryClient()
+  const [tab, setTab] = useState<'projects' | 'clients'>('projects')
 
   const { data: allProjects = [] } = useQuery({
     queryKey: ['projects-all', token],
@@ -110,14 +109,14 @@ function AssignProjectsDialog({ worker, onClose }: { worker: UserResponse; onClo
   })
 
   const { data: assignmentMap = {} } = useQuery({
-    queryKey: ['assignments-for-worker', token, worker.userId, allProjects.map((p) => p.projectId).join(',')],
+    queryKey: ['assignments-for-member', token, member.userId, allProjects.map((p) => p.projectId).join(',')],
     queryFn: async () => {
       const results: Record<number, boolean> = {}
       await Promise.all(
         allProjects.map(async (p) => {
           try {
             const a = await projectsApi.listAssignments(token!, p.projectId)
-            results[p.projectId] = a.some((x) => x.userId === worker.userId)
+            results[p.projectId] = a.some((x) => x.userId === member.userId)
           } catch {
             results[p.projectId] = false
           }
@@ -128,18 +127,43 @@ function AssignProjectsDialog({ worker, onClose }: { worker: UserResponse; onClo
     enabled: !!token && allProjects.length > 0,
   })
 
-  const toggleMutation = useMutation({
+  const { data: clientAccessData } = useQuery({
+    queryKey: ['client-access-for-member', token, member.userId],
+    queryFn: async () => {
+      const results: Record<number, boolean> = {}
+      await Promise.all(
+        clientList.map(async (c) => {
+          try {
+            const data = await clientTeamAccess.list(token!, c.clientId)
+            results[c.clientId] = data.userIds.includes(member.userId)
+          } catch {
+            results[c.clientId] = false
+          }
+        })
+      )
+      return results
+    },
+    enabled: !!token && clientList.length > 0,
+  })
+
+  const toggleProjectMutation = useMutation({
     mutationFn: async ({ projectId, assigned }: { projectId: number; assigned: boolean }) => {
-      if (assigned) {
-        await projectsApi.unassign(token!, projectId, worker.userId)
-      } else {
-        await projectsApi.assign(token!, projectId, worker.userId)
-      }
+      if (assigned) await projectsApi.unassign(token!, projectId, member.userId)
+      else await projectsApi.assign(token!, projectId, member.userId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignments-for-worker'] })
+      queryClient.invalidateQueries({ queryKey: ['assignments-for-member'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const toggleClientMutation = useMutation({
+    mutationFn: async ({ clientId, hasAccess }: { clientId: number; hasAccess: boolean }) => {
+      if (hasAccess) await clientTeamAccess.revoke(token!, clientId, member.userId)
+      else await clientTeamAccess.grant(token!, clientId, member.userId)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-access-for-member'] }),
     onError: (err: Error) => toast.error(err.message),
   })
 
@@ -147,40 +171,89 @@ function AssignProjectsDialog({ worker, onClose }: { worker: UserResponse; onClo
     .map((c) => ({ client: c, projects: allProjects.filter((p) => p.clientId === c.clientId) }))
     .filter((g) => g.projects.length > 0)
 
-  const displayName = [worker.firstName, worker.lastName].filter(Boolean).join(' ') || worker.email
+  const displayName = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Assign projects to {displayName}</DialogTitle>
+          <DialogTitle>Manage access — {displayName}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2 max-h-96 overflow-y-auto">
-          {byClient.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No projects yet — create some in Clients.</p>
-          )}
-          {byClient.map(({ client, projects }) => (
-            <div key={client.clientId}>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{client.name}</p>
-              <div className="space-y-1">
-                {projects.map((p) => {
-                  const assigned = assignmentMap[p.projectId] ?? false
-                  return (
-                    <label key={p.projectId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={assigned}
-                        onChange={() => toggleMutation.mutate({ projectId: p.projectId, assigned })}
-                        className="rounded border-border accent-primary h-4 w-4"
-                      />
-                      <span className="text-sm">{p.name}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+
+        {/* Tabs */}
+        <div className="flex rounded-lg border border-border overflow-hidden text-sm mb-2">
+          <button
+            type="button"
+            onClick={() => setTab('projects')}
+            className={`flex-1 py-2 transition-colors ${tab === 'projects' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Projects
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('clients')}
+            className={`flex-1 py-2 transition-colors ${tab === 'clients' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Client visibility
+          </button>
         </div>
+
+        <div className="space-y-4 py-2 max-h-96 overflow-y-auto">
+          {tab === 'projects' && (
+            <>
+              {byClient.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No projects yet — create some in Clients.</p>
+              )}
+              {byClient.map(({ client, projects }) => (
+                <div key={client.clientId}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{client.name}</p>
+                  <div className="space-y-1">
+                    {projects.map((p) => {
+                      const assigned = assignmentMap[p.projectId] ?? false
+                      return (
+                        <label key={p.projectId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={assigned}
+                            onChange={() => toggleProjectMutation.mutate({ projectId: p.projectId, assigned })}
+                            className="rounded border-border accent-primary h-4 w-4"
+                          />
+                          <span className="text-sm">{p.name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {tab === 'clients' && (
+            <>
+              <p className="text-xs text-muted-foreground px-1">
+                Grant visibility to a client so this team member can browse all its projects and team activity — without needing a project assignment.
+              </p>
+              {clientList.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No clients yet.</p>
+              )}
+              {clientList.map((c) => {
+                const hasAccess = clientAccessData?.[c.clientId] ?? false
+                return (
+                  <label key={c.clientId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasAccess}
+                      onChange={() => toggleClientMutation.mutate({ clientId: c.clientId, hasAccess })}
+                      className="rounded border-border accent-primary h-4 w-4"
+                    />
+                    <span className="text-sm">{c.name}</span>
+                  </label>
+                )
+              })}
+            </>
+          )}
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Done</Button>
         </DialogFooter>
@@ -196,7 +269,7 @@ export default function UsersPage() {
   const queryClient = useQueryClient()
   const [addWorkerOpen, setAddWorkerOpen] = useState(false)
   const [addAdminOpen, setAddAdminOpen] = useState(false)
-  const [assignWorker, setAssignWorker] = useState<UserResponse | null>(null)
+  const [assignMember, setAssignMember] = useState<UserResponse | null>(null)
 
   const { data: userList = [], isLoading } = useQuery({
     queryKey: ['users', token],
@@ -205,7 +278,7 @@ export default function UsersPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ userId, body }: { userId: number; body: { role?: string; isActive?: boolean } }) =>
+    mutationFn: ({ userId, body }: { userId: number; body: Parameters<typeof users.update>[2] }) =>
       users.update(token!, userId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -218,15 +291,14 @@ export default function UsersPage() {
     return <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Access restricted to admins</div>
   }
 
-  const workers = userList.filter((u) => u.role === 'VA')
+  const members = userList.filter((u) => u.role === 'VA')
   const admins = userList.filter((u) => u.role === 'MANAGER')
 
-  function handleWorkerCreated(email: string) {
+  function handleMemberCreated(email: string) {
     setAddWorkerOpen(false)
     queryClient.invalidateQueries({ queryKey: ['users'] }).then(() => {
-      // auto-open assign dialog for new worker once list refreshes
-      const newWorker = userList.find((u) => u.email === email)
-      if (newWorker) setAssignWorker(newWorker)
+      const newMember = userList.find((u) => u.email === email)
+      if (newMember) setAssignMember(newMember)
     })
   }
 
@@ -235,41 +307,42 @@ export default function UsersPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold">Team</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage workers and their project access</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage team members and their access</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setAddAdminOpen(true)}>+ Add admin</Button>
-          <Button onClick={() => setAddWorkerOpen(true)}>+ Add worker</Button>
+          <Button onClick={() => setAddWorkerOpen(true)}>+ Add team member</Button>
         </div>
       </div>
 
-      {/* Workers */}
+      {/* Team Members */}
       <div className="mb-8">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Workers</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Team Members</h2>
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Worker</TableHead>
+                <TableHead>Team member</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Projects</TableHead>
+                <TableHead>Visibility</TableHead>
+                <TableHead>Access</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
               )}
-              {workers.length === 0 && !isLoading && (
+              {members.length === 0 && !isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No workers yet —{' '}
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No team members yet —{' '}
                     <button className="text-primary hover:underline" onClick={() => setAddWorkerOpen(true)}>add one</button>
                   </TableCell>
                 </TableRow>
               )}
-              {workers.map((u) => {
+              {members.map((u) => {
                 const initials = [u.firstName?.[0], u.lastName?.[0]].filter(Boolean).join('') || u.email[0].toUpperCase()
                 const displayName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email
                 return (
@@ -292,8 +365,27 @@ export default function UsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => setAssignWorker(u)}>
-                        Assign projects
+                      <button
+                        onClick={() => updateMutation.mutate({ userId: u.userId, body: { fullVisibility: !u.fullVisibility } })}
+                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
+                          u.fullVisibility
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
+                        }`}
+                        title={u.fullVisibility ? 'Full visibility — click to restrict' : 'Restricted — click to grant full visibility'}
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          {u.fullVisibility
+                            ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
+                            : <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
+                          }
+                        </svg>
+                        {u.fullVisibility ? 'Full' : 'Restricted'}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" className="text-xs" onClick={() => setAssignMember(u)}>
+                        Manage access
                       </Button>
                     </TableCell>
                     <TableCell>
@@ -350,7 +442,7 @@ export default function UsersPage() {
                           onClick={() => updateMutation.mutate({ userId: u.userId, body: { role: 'VA' } })}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          Make worker
+                          Make team member
                         </button>
                       )}
                     </TableCell>
@@ -363,13 +455,13 @@ export default function UsersPage() {
       </div>
 
       {addWorkerOpen && (
-        <AddUserDialog role="VA" onClose={() => setAddWorkerOpen(false)} onCreated={handleWorkerCreated} />
+        <AddUserDialog role="VA" onClose={() => setAddWorkerOpen(false)} onCreated={handleMemberCreated} />
       )}
       {addAdminOpen && (
         <AddUserDialog role="MANAGER" onClose={() => setAddAdminOpen(false)} onCreated={() => { setAddAdminOpen(false); queryClient.invalidateQueries({ queryKey: ['users'] }) }} />
       )}
-      {assignWorker && (
-        <AssignProjectsDialog worker={assignWorker} onClose={() => setAssignWorker(null)} />
+      {assignMember && (
+        <AssignDialog member={assignMember} onClose={() => setAssignMember(null)} />
       )}
     </div>
   )

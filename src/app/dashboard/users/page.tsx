@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
@@ -95,6 +95,13 @@ function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () =
   const { token } = useAuthStore()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<'projects' | 'clients'>('projects')
+  const [saving, setSaving] = useState(false)
+
+  // Local pending state — toggled instantly, sent on Save
+  const [localProjects, setLocalProjects] = useState<Record<number, boolean>>({})
+  const [localClients, setLocalClients] = useState<Record<number, boolean>>({})
+  const [projectsReady, setProjectsReady] = useState(false)
+  const [clientsReady, setClientsReady] = useState(false)
 
   const { data: allProjects = [] } = useQuery({
     queryKey: ['projects-all', token],
@@ -146,26 +153,51 @@ function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () =
     enabled: !!token && clientList.length > 0,
   })
 
-  const toggleProjectMutation = useMutation({
-    mutationFn: async ({ projectId, assigned }: { projectId: number; assigned: boolean }) => {
-      if (assigned) await projectsApi.unassign(token!, projectId, member.userId)
-      else await projectsApi.assign(token!, projectId, member.userId)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assignments-for-member'] })
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-    },
-    onError: (err: Error) => toast.error(err.message),
-  })
+  // Seed local state from server data (once loaded)
+  useEffect(() => {
+    if (!projectsReady && Object.keys(assignmentMap).length > 0) {
+      setLocalProjects({ ...assignmentMap })
+      setProjectsReady(true)
+    }
+  }, [assignmentMap, projectsReady])
 
-  const toggleClientMutation = useMutation({
-    mutationFn: async ({ clientId, hasAccess }: { clientId: number; hasAccess: boolean }) => {
-      if (hasAccess) await clientTeamAccess.revoke(token!, clientId, member.userId)
-      else await clientTeamAccess.grant(token!, clientId, member.userId)
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-access-for-member'] }),
-    onError: (err: Error) => toast.error(err.message),
-  })
+  useEffect(() => {
+    if (!clientsReady && clientAccessData && Object.keys(clientAccessData).length > 0) {
+      setLocalClients({ ...clientAccessData })
+      setClientsReady(true)
+    }
+  }, [clientAccessData, clientsReady])
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const projectOps = allProjects
+        .filter((p) => (localProjects[p.projectId] ?? false) !== (assignmentMap[p.projectId] ?? false))
+        .map((p) =>
+          localProjects[p.projectId]
+            ? projectsApi.assign(token!, p.projectId, member.userId)
+            : projectsApi.unassign(token!, p.projectId, member.userId)
+        )
+
+      const clientOps = clientList
+        .filter((c) => (localClients[c.clientId] ?? false) !== (clientAccessData?.[c.clientId] ?? false))
+        .map((c) =>
+          localClients[c.clientId]
+            ? clientTeamAccess.grant(token!, c.clientId, member.userId)
+            : clientTeamAccess.revoke(token!, c.clientId, member.userId)
+        )
+
+      await Promise.all([...projectOps, ...clientOps])
+      queryClient.invalidateQueries({ queryKey: ['assignments-for-member'] })
+      queryClient.invalidateQueries({ queryKey: ['client-access-for-member'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const byClient = clientList
     .map((c) => ({ client: c, projects: allProjects.filter((p) => p.clientId === c.clientId) }))
@@ -208,20 +240,17 @@ function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () =
                 <div key={client.clientId}>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{client.name}</p>
                   <div className="space-y-1">
-                    {projects.map((p) => {
-                      const assigned = assignmentMap[p.projectId] ?? false
-                      return (
-                        <label key={p.projectId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={assigned}
-                            onChange={() => toggleProjectMutation.mutate({ projectId: p.projectId, assigned })}
-                            className="rounded border-border accent-primary h-4 w-4"
-                          />
-                          <span className="text-sm">{p.name}</span>
-                        </label>
-                      )
-                    })}
+                    {projects.map((p) => (
+                      <label key={p.projectId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localProjects[p.projectId] ?? assignmentMap[p.projectId] ?? false}
+                          onChange={() => setLocalProjects(prev => ({ ...prev, [p.projectId]: !(prev[p.projectId] ?? assignmentMap[p.projectId] ?? false) }))}
+                          className="rounded border-border accent-primary h-4 w-4"
+                        />
+                        <span className="text-sm">{p.name}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -236,26 +265,26 @@ function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () =
               {clientList.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">No clients yet.</p>
               )}
-              {clientList.map((c) => {
-                const hasAccess = clientAccessData?.[c.clientId] ?? false
-                return (
-                  <label key={c.clientId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasAccess}
-                      onChange={() => toggleClientMutation.mutate({ clientId: c.clientId, hasAccess })}
-                      className="rounded border-border accent-primary h-4 w-4"
-                    />
-                    <span className="text-sm">{c.name}</span>
-                  </label>
-                )
-              })}
+              {clientList.map((c) => (
+                <label key={c.clientId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localClients[c.clientId] ?? clientAccessData?.[c.clientId] ?? false}
+                    onChange={() => setLocalClients(prev => ({ ...prev, [c.clientId]: !(prev[c.clientId] ?? clientAccessData?.[c.clientId] ?? false) }))}
+                    className="rounded border-border accent-primary h-4 w-4"
+                  />
+                  <span className="text-sm">{c.name}</span>
+                </label>
+              ))}
             </>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Done</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
-import { clients, projects, retainers, reports } from '@/lib/api'
+import { clients, projects, retainers, reports, clientTeamAccess } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ClientResponse, ProjectResponse, RetainerStatus } from '@/lib/types'
 
@@ -94,6 +94,13 @@ export default function ClientsPage() {
     enabled: !!token,
   })
 
+  const { data: myTeamAccess } = useQuery({
+    queryKey: ['my-team-access', token],
+    queryFn: () => clientTeamAccess.myClients(token!),
+    enabled: !!token && isVA,
+  })
+  const teamAccessIds = new Set(myTeamAccess?.clientIds ?? [])
+
   const { data: summaryData } = useQuery({
     queryKey: ['reports-summary-alltime', token],
     queryFn: () => reports.summary(token!),
@@ -150,7 +157,7 @@ export default function ClientsPage() {
   const projectsByClient = (clientId: number) => projectList.filter((p) => p.clientId === clientId && p.isActive)
   const assignedClientIds = new Set(projectList.map((p) => p.clientId))
 
-  const activeClients = clientList.filter(c => c.isActive && (!isVA || assignedClientIds.has(c.clientId)))
+  const activeClients = clientList.filter(c => c.isActive && (!isVA || assignedClientIds.has(c.clientId) || teamAccessIds.has(c.clientId)))
   const q = search.trim().toLowerCase()
   const displayedClients = q
     ? activeClients.filter(c => c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
@@ -209,7 +216,7 @@ export default function ClientsPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    {(user?.role === 'MANAGER' || user?.fullVisibility) ? (
+                    {(user?.role === 'MANAGER' || user?.fullVisibility || teamAccessIds.has(client.clientId)) ? (
                       <Link href={`/dashboard/clients/${client.clientId}`} className="font-semibold text-foreground hover:text-primary transition-colors">
                         {client.name}
                       </Link>

@@ -231,9 +231,19 @@ export function WorkerDashboard() {
   const todaySeconds = completedEntries.reduce((sum, e) => sum + (e.durationSeconds ?? 0), 0)
 
   const dailyHours = Array(7).fill(0)
-  ;(weekData?.entries ?? []).filter((e) => !e.isRunning).forEach((e) => {
-    const idx = dayjs(e.startedAt).isoWeekday() - 1
-    dailyHours[idx] += (e.durationSeconds ?? 0) / 3600
+  const weekStartDay = dayjs().startOf('isoWeek')
+  ;(weekData?.entries ?? []).filter((e) => !e.isRunning && e.endedAt).forEach((e) => {
+    const start = dayjs(e.startedAt)
+    const end = dayjs(e.endedAt!)
+    for (let d = 0; d < 7; d++) {
+      const dayStart = weekStartDay.add(d, 'day')
+      const dayEnd = dayStart.add(1, 'day')
+      const overlapStart = start.isAfter(dayStart) ? start : dayStart
+      const overlapEnd = end.isBefore(dayEnd) ? end : dayEnd
+      if (overlapEnd.isAfter(overlapStart)) {
+        dailyHours[d] += overlapEnd.diff(overlapStart, 'second') / 3600
+      }
+    }
   })
 
   const recentClients = clientList

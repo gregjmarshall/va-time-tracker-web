@@ -151,8 +151,41 @@ export interface UserResponse {
   lastName?: string
   role: Role
   isActive: boolean
+  fullVisibility: boolean
   emailVerified: boolean
   createdAt: string
+}
+
+export interface ClientActivityRunningEntry {
+  entryId: number
+  userId: number
+  userName: string
+  description: string
+  startedAt: string
+}
+
+export interface ClientActivityRecentEntry {
+  entryId: number
+  userId: number
+  userName: string
+  description: string
+  startedAt: string
+  endedAt: string
+  durationSeconds: number
+}
+
+export interface ClientActivityProject {
+  projectId: number
+  projectName: string
+  budgetHours?: number
+  runningEntries: ClientActivityRunningEntry[]
+  recentEntries: ClientActivityRecentEntry[]
+}
+
+export interface ClientActivityResponse {
+  clientId: number
+  clientName: string
+  projects: ClientActivityProject[]
 }
 
 export interface SlackConfigResponse {

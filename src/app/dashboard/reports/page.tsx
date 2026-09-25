@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { reports, clients } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { SummaryRow } from '@/lib/types'
+import { isManagerial, type SummaryRow } from '@/lib/types'
 
 dayjs.extend(isoWeek)
 
@@ -236,6 +236,7 @@ export default function ReportsPage() {
 
   const range = resolveRange(rangeKey)
   const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || ''
+  const canManage = isManagerial(user?.role)
 
   const { data: clientList } = useQuery({
     queryKey: ['clients', token],
@@ -255,7 +256,7 @@ export default function ReportsPage() {
   const { data: retainerReport, isLoading: retainerLoading } = useQuery({
     queryKey: ['reports-retainer', token],
     queryFn: () => reports.retainer(token!),
-    enabled: !!token && user?.role === 'MANAGER',
+    enabled: !!token && canManage,
   })
 
   const rows = summary?.rows ?? []
@@ -327,7 +328,7 @@ export default function ReportsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="summary">Summary</TabsTrigger>
-          {user?.role === 'MANAGER' && <TabsTrigger value="retainers">Retainers</TabsTrigger>}
+          {canManage && <TabsTrigger value="retainers">Retainers</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="summary">
@@ -366,7 +367,7 @@ export default function ReportsPage() {
           )}
         </TabsContent>
 
-        {user?.role === 'MANAGER' && (
+        {canManage && (
           <TabsContent value="retainers">
             {retainerLoading ? (
               <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>

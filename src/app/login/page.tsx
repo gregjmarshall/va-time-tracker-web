@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { auth } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import type { Role } from '@/lib/types'
 
 const WORKSPACE_ID = Number(process.env.NEXT_PUBLIC_WORKSPACE_ID ?? '1')
 
@@ -30,7 +31,7 @@ export default function LoginPage() {
       email: me.email,
       firstName: me.firstName,
       lastName: me.lastName,
-      role: role as 'VA' | 'MANAGER',
+      role: role as Role,
       workspaceId: workspaceId,
       fullVisibility: me.fullVisibility ?? false,
     })
@@ -51,7 +52,7 @@ export default function LoginPage() {
           password,
           firstName: firstName || undefined,
           lastName: lastName || undefined,
-          role: 'MANAGER',
+          role: 'ADMIN',
         })
         await doLogin(res.token, res.role, res.workspaceId)
         toast.success('Account created!')

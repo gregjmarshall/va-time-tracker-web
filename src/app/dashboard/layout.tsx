@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { timeEntries } from '@/lib/api'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { roleLabel } from '@/lib/types'
 
 const workerNav = [
   {
@@ -134,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-          {(user.role === 'VA' ? workerNav : adminNav).map((item) => {
+          {(user.role === 'TEAM_MEMBER' ? workerNav : adminNav).map((item) => {
             const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
             return (
               <Link
@@ -171,7 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white/90 truncate">{displayName}</p>
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{user.role === 'MANAGER' ? 'Admin' : 'Worker'}</p>
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{roleLabel(user.role)}</p>
             </div>
             <button
               onClick={handleLogout}

@@ -19,7 +19,7 @@ import {
 import Link from 'next/link'
 import { clients, projects, retainers, reports, clientTeamAccess } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { ClientResponse, ProjectResponse, RetainerStatus } from '@/lib/types'
+import { isManagerial, type ClientResponse, type ProjectResponse, type RetainerStatus } from '@/lib/types'
 
 function RetainerBar({ status }: { status: RetainerStatus }) {
   const used = status.percentUsed !== undefined ? Math.round(status.percentUsed) : null
@@ -54,7 +54,7 @@ function pushRecent(id: number) {
 
 export default function ClientsPage() {
   const { token, user } = useAuthStore()
-  const isVA = user?.role === 'VA'
+  const isTeamMember = !isManagerial(user?.role)
   const queryClient = useQueryClient()
 
   const [search, setSearch] = useState('')
@@ -97,7 +97,7 @@ export default function ClientsPage() {
   const { data: myTeamAccess } = useQuery({
     queryKey: ['my-team-access', token],
     queryFn: () => clientTeamAccess.myClients(token!),
-    enabled: !!token && isVA,
+    enabled: !!token && isTeamMember,
   })
   const teamAccessIds = new Set(myTeamAccess?.clientIds ?? [])
 
@@ -157,7 +157,7 @@ export default function ClientsPage() {
   const projectsByClient = (clientId: number) => projectList.filter((p) => p.clientId === clientId && p.isActive)
   const assignedClientIds = new Set(projectList.map((p) => p.clientId))
 
-  const activeClients = clientList.filter(c => c.isActive && (!isVA || assignedClientIds.has(c.clientId) || teamAccessIds.has(c.clientId)))
+  const activeClients = clientList.filter(c => c.isActive && (!isTeamMember || assignedClientIds.has(c.clientId) || teamAccessIds.has(c.clientId)))
   const q = search.trim().toLowerCase()
   const displayedClients = q
     ? activeClients.filter(c => c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
@@ -170,9 +170,9 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{isVA ? 'Your assigned clients and projects' : 'Manage clients, projects and retainers'}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{isTeamMember ? 'Your assigned clients and projects' : 'Manage clients, projects and retainers'}</p>
         </div>
-        {!isVA && <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>}
+        {!isTeamMember && <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>}
       </div>
 
       {/* Search */}
@@ -193,7 +193,7 @@ export default function ClientsPage() {
       {!isLoading && clientList.length === 0 && (
         <div className="text-center py-16 border border-dashed border-border rounded-xl">
           <p className="text-muted-foreground text-sm mb-3">No clients yet</p>
-          {!isVA && <Button onClick={() => setCreateClientOpen(true)}>+ Create your first client</Button>}
+          {!isTeamMember && <Button onClick={() => setCreateClientOpen(true)}>+ Create your first client</Button>}
         </div>
       )}
 
@@ -216,7 +216,7 @@ export default function ClientsPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    {(user?.role === 'MANAGER' || user?.fullVisibility || teamAccessIds.has(client.clientId)) ? (
+                    {(isManagerial(user?.role) || user?.fullVisibility || teamAccessIds.has(client.clientId)) ? (
                       <Link href={`/dashboard/clients/${client.clientId}`} className="font-semibold text-foreground hover:text-primary transition-colors">
                         {client.name}
                       </Link>
@@ -232,7 +232,7 @@ export default function ClientsPage() {
                   </Badge>
                 </div>
                 {detail && <RetainerBar status={detail.retainerStatus} />}
-                {!isVA && <div className="mt-4 flex gap-2">
+                {!isTeamMember && <div className="mt-4 flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"

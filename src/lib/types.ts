@@ -1,4 +1,26 @@
-export type Role = 'VA' | 'MANAGER'
+export type Role = 'ADMIN' | 'MANAGER' | 'TEAM_MEMBER'
+
+/** Role hierarchy, highest first: ADMIN > MANAGER > TEAM_MEMBER. */
+export const ROLES: Role[] = ['ADMIN', 'MANAGER', 'TEAM_MEMBER']
+
+/** MANAGER or above — can run clients, projects, retainers, reports and team members. */
+export function isManagerial(role: Role | undefined): boolean {
+  return role === 'ADMIN' || role === 'MANAGER'
+}
+
+/** ADMIN only — can also manage Admin/Manager accounts, workspace settings, billing rates and integrations. */
+export function isAdmin(role: Role | undefined): boolean {
+  return role === 'ADMIN'
+}
+
+export function roleLabel(role: Role): string {
+  switch (role) {
+    case 'ADMIN': return 'Admin'
+    case 'MANAGER': return 'Manager'
+    case 'TEAM_MEMBER': return 'Team member'
+  }
+}
+
 export type RoundingMode = 'NONE' | 'UP' | 'DOWN' | 'NEAREST'
 
 export interface AuthResponse {

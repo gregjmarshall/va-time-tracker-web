@@ -11,17 +11,12 @@ import { auth } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { Role } from '@/lib/types'
 
-const WORKSPACE_ID = Number(process.env.NEXT_PUBLIC_WORKSPACE_ID ?? '1')
-
 export default function LoginPage() {
   const router = useRouter()
   const setAuth = useAuthStore((s) => s.setAuth)
 
-  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function doLogin(token: string, role: string, workspaceId: number) {
@@ -42,23 +37,10 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      if (mode === 'login') {
-        const res = await auth.login(email, password)
-        await doLogin(res.token, res.role, res.workspaceId)
-      } else {
-        const res = await auth.register({
-          workspaceId: WORKSPACE_ID,
-          email,
-          password,
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-          role: 'ADMIN',
-        })
-        await doLogin(res.token, res.role, res.workspaceId)
-        toast.success('Account created!')
-      }
+      const res = await auth.login(email, password)
+      await doLogin(res.token, res.role, res.workspaceId)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : mode === 'login' ? 'Login failed' : 'Registration failed')
+      toast.error(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -83,37 +65,13 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">pip</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {mode === 'login' ? 'Sign in to your workspace' : 'Create your account'}
+            Sign in to your workspace
           </p>
         </div>
 
         <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'register' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="firstName">First name</Label>
-                    <Input
-                      id="firstName"
-                      placeholder="Jane"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="lastName">Last name</Label>
-                    <Input
-                      id="lastName"
-                      placeholder="Smith"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -123,7 +81,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoFocus={mode === 'login'}
+                  autoFocus
                 />
               </div>
 
@@ -140,33 +98,23 @@ export default function LoginPage() {
                 />
               </div>
 
-              {mode === 'login' && (
-                <div className="text-right -mt-1">
-                  <a
-                    href="/forgot-password"
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Forgot password?
-                  </a>
-                </div>
-              )}
+              <div className="text-right -mt-1">
+                <a
+                  href="/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Forgot password?
+                </a>
+              </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading
-                  ? mode === 'login' ? 'Signing in…' : 'Creating account…'
-                  : mode === 'login' ? 'Sign in' : 'Create account'}
+                {loading ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>
 
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {mode === 'login' ? "Don't have an account? Create one" : 'Already have an account? Sign in'}
-              </button>
-            </div>
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Need an account? Ask your workspace Admin or Manager to add you.
+            </p>
           </CardContent>
         </Card>
       </div>

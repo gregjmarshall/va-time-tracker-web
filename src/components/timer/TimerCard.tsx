@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { timeEntries, projects as projectsApi, clients as clientsApi, suggestions } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { TimeEntryResponse, ProjectResponse, ClientResponse } from '@/lib/types'
+import { invalidateTimeData } from '@/lib/queries'
 
 function formatElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -81,8 +82,7 @@ export function TimerCard({ activeEntry, allProjects, onStarted, onStopped }: Pr
     mutationFn: () =>
       timeEntries.start(token!, { projectId: Number(projectId), description }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['active-timer'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      invalidateTimeData(queryClient)
       onStarted()
       toast.success('Timer started')
     },
@@ -92,8 +92,7 @@ export function TimerCard({ activeEntry, allProjects, onStarted, onStopped }: Pr
   const stopMutation = useMutation({
     mutationFn: () => timeEntries.stop(token!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['active-timer'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      invalidateTimeData(queryClient)
       onStopped()
       setDescription('')
       setClientId('')

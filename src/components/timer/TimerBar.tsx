@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { ProjectResponse, ClientResponse, TimeEntryResponse, TimerSessionResponse } from '@/lib/types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { invalidateTimeData } from '@/lib/queries'
 
 function formatElapsed(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
@@ -421,10 +422,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     },
     onSuccess: () => {
       clearSessionMutation.mutate()
-      queryClient.invalidateQueries({ queryKey: ['active-timer'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries-week'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries-recent'] })
+      invalidateTimeData(queryClient)
       onChanged()
       accumulatedRef.current = 0
       nullProjectEntryIdsRef.current = []

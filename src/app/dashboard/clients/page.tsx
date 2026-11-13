@@ -17,9 +17,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
-import { clients, projects, retainers, reports, clientTeamAccess } from '@/lib/api'
+import { clients, projects, retainers, reports, clientTeamAccess, clientManagers, users } from '@/lib/api'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
-import { isManagerial, type ClientResponse, type ProjectResponse, type RetainerStatus } from '@/lib/types'
+import { isManagerial, type ClientResponse, type ProjectResponse, type RetainerStatus, type UserResponse } from '@/lib/types'
 
 function RetainerBar({ status }: { status: RetainerStatus }) {
   const used = status.percentUsed !== undefined ? Math.round(status.percentUsed) : null
@@ -52,12 +53,49 @@ function pushRecent(id: number) {
   localStorage.setItem(RECENT_KEY, JSON.stringify([id, ...prev].slice(0, 5)))
 }
 
+// ── Overseeing managers ───────────────────────────────────────────────────────
+
+function OverseenBy({ clientId, managerIds, managers, onChange }: {
+  clientId: number
+  managerIds: number[]
+  managers: UserResponse[]
+  onChange: (clientId: number, userIds: number[]) => void
+}) {
+  const name = (u: UserResponse) => [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email
+  const assigned = managers.filter((m) => managerIds.includes(m.userId))
+  return (
+    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+      <span>Overseen by</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="text-foreground hover:text-primary transition-colors cursor-pointer">
+          {assigned.length > 0 ? assigned.map(name).join(', ') : <span className="text-muted-foreground underline decoration-dotted">nobody yet</span>}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel>Managers overseeing this client</DropdownMenuLabel>
+          {managers.map((m) => (
+            <DropdownMenuCheckboxItem
+              key={m.userId}
+              checked={managerIds.includes(m.userId)}
+              onCheckedChange={(checked) =>
+                onChange(clientId, checked ? [...managerIds, m.userId] : managerIds.filter((id) => id !== m.userId))
+              }
+            >
+              {name(m)}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 export default function ClientsPage() {
   const { token, user } = useAuthStore()
   const isTeamMember = !isManagerial(user?.role)
   const queryClient = useQueryClient()
 
   const [search, setSearch] = useState('')
+  const [mineChoice, setMineOnly] = useState<boolean | null>(null)
   const [recentIds, setRecentIds] = useState<number[]>([])
   const [createClientOpen, setCreateClientOpen] = useState(false)
   const [retainerClientId, setRetainerClientId] = useState<number | null>(null)
@@ -100,6 +138,24 @@ export default function ClientsPage() {
     enabled: !!token && isTeamMember,
   })
   const teamAccessIds = new Set(myTeamAccess?.clientIds ?? [])
+
+  const { data: managerRows = [] } = useQuery({
+    queryKey: ['client-managers', token],
+    queryFn: () => clientManagers.list(token!),
+    enabled: !!token && !isTeamMember,
+  })
+  const managersByClient = new Map(managerRows.map((r) => [r.clientId, r.userIds]))
+  const { data: people = [] } = useQuery({
+    queryKey: ['users', token],
+    queryFn: () => users.list(token!),
+    enabled: !!token && !isTeamMember,
+  })
+  const managers = people.filter((u) => u.isActive && isManagerial(u.role))
+  const setManagersMutation = useMutation({
+    mutationFn: ({ clientId, userIds }: { clientId: number; userIds: number[] }) => clientManagers.set(token!, clientId, userIds),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-managers'] }),
+    onError: (err: Error) => toast.error(err.message),
+  })
 
   const { data: summaryData } = useQuery({
     queryKey: ['reports-summary-alltime', token],
@@ -158,10 +214,15 @@ export default function ClientsPage() {
   const assignedClientIds = new Set(projectList.map((p) => p.clientId))
 
   const activeClients = clientList.filter(c => c.isActive && (!isTeamMember || assignedClientIds.has(c.clientId) || teamAccessIds.has(c.clientId)))
+  const myClients = activeClients.filter(c => user && managersByClient.get(c.clientId)?.includes(user.userId))
+  // Managers land on the clients they oversee; admins on everything
+  const mineOnly = mineChoice ?? (user?.role === 'MANAGER' && myClients.length > 0)
   const q = search.trim().toLowerCase()
   const displayedClients = q
-    ? activeClients.filter(c => c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
-    : recentIds.length > 0
+    ? (mineOnly ? myClients : activeClients).filter(c => c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
+    : mineOnly
+      ? myClients
+      : recentIds.length > 0
       ? activeClients.filter(c => recentIds.includes(c.clientId)).sort((a, b) => recentIds.indexOf(a.clientId) - recentIds.indexOf(b.clientId))
       : activeClients.slice(0, 5)
 
@@ -197,7 +258,24 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {!q && activeClients.length > 0 && (
+      {!isTeamMember && myClients.length > 0 && (
+        <div className="flex gap-2 mb-4">
+          {[{ mine: false, label: 'All clients' }, { mine: true, label: `My clients (${myClients.length})` }].map((o) => (
+            <button
+              key={o.label}
+              onClick={() => setMineOnly(o.mine)}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                mineOnly === o.mine
+                  ? 'bg-primary text-white border-primary shadow-sm shadow-primary/30'
+                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {!q && !mineOnly && activeClients.length > 0 && (
         <p className="text-xs text-muted-foreground mb-3">
           {recentIds.length > 0 ? 'Recently accessed' : 'Most recent'} · search to find all {activeClients.length} clients
         </p>
@@ -232,6 +310,14 @@ export default function ClientsPage() {
                   </Badge>
                 </div>
                 {detail && <RetainerBar status={detail.retainerStatus} />}
+                {!isTeamMember && managers.length > 0 && (
+                  <OverseenBy
+                    clientId={client.clientId}
+                    managerIds={managersByClient.get(client.clientId) ?? []}
+                    managers={managers}
+                    onChange={(clientId, userIds) => setManagersMutation.mutate({ clientId, userIds })}
+                  />
+                )}
                 {!isTeamMember && <div className="mt-4 flex gap-2">
                   <Button
                     variant="outline"

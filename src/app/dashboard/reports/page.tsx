@@ -9,9 +9,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { reports, clients } from '@/lib/api'
+import { reports, clients, users } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import { isManagerial, type SummaryRow } from '@/lib/types'
+import { isManagerial, type CoverFilter, type SummaryRow } from '@/lib/types'
 
 dayjs.extend(isoWeek)
 
@@ -44,12 +44,14 @@ function resolveRange(key: RangeKey) {
   }
 }
 
+const SELECT_CLASS = 'px-3 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer'
+
 // ── CSV export ────────────────────────────────────────────────────────────────
 
 function exportCsv(rows: SummaryRow[], rangeLabel: string) {
-  const header = 'Client,Project,Hours,Rounded Hours\n'
+  const header = 'Client,Project,Hours,Rounded Hours,Holiday Cover Hours\n'
   const body = rows.map(r =>
-    `"${r.clientName}","${r.projectName}",${r.totalHours.toFixed(2)},${r.roundedTotalHours.toFixed(2)}`
+    `"${r.clientName}","${r.projectName}",${r.totalHours.toFixed(2)},${r.roundedTotalHours.toFixed(2)},${r.coverRoundedTotalHours.toFixed(2)}`
   ).join('\n')
   const blob = new Blob([header + body], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
@@ -233,6 +235,8 @@ export default function ReportsPage() {
   const [tab, setTab] = useState('summary')
   const [rangeKey, setRangeKey] = useState<RangeKey>('mtd')
   const [clientId, setClientId] = useState<number | null>(null)
+  const [memberId, setMemberId] = useState<number | null>(null)
+  const [cover, setCover] = useState<CoverFilter>('include')
 
   const range = resolveRange(rangeKey)
   const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || ''
@@ -245,11 +249,28 @@ export default function ReportsPage() {
     staleTime: 5 * 60_000,
   })
 
+  const { data: memberList } = useQuery({
+    queryKey: ['users', token],
+    queryFn: () => users.list(token!),
+    enabled: !!token && canManage,
+    staleTime: 5 * 60_000,
+  })
+
   const selectedClient = clientList?.find(c => c.clientId === clientId) ?? null
+  const selectedMember = memberList?.find(u => u.userId === memberId) ?? null
+  const memberName = selectedMember ? [selectedMember.firstName, selectedMember.lastName].filter(Boolean).join(' ') || selectedMember.email : null
+  const coverLabel = cover === 'exclude' ? 'excl. holiday cover' : cover === 'only' ? 'holiday cover only' : null
+  const subtitle = [range.label, selectedClient?.name, memberName, coverLabel].filter(Boolean).join(' · ')
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['reports-summary', token, rangeKey, clientId],
-    queryFn: () => reports.summary(token!, { from: range.from, to: range.to, ...(clientId ? { clientId } : {}) }),
+    queryKey: ['reports-summary', token, rangeKey, clientId, memberId, cover],
+    queryFn: () => reports.summary(token!, {
+      from: range.from,
+      to: range.to,
+      ...(clientId ? { clientId } : {}),
+      ...(memberId ? { userId: memberId } : {}),
+      cover,
+    }),
     enabled: !!token,
   })
 
@@ -265,13 +286,13 @@ export default function ReportsPage() {
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">My Time</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{range.label}{selectedClient ? ` · ${selectedClient.name}` : ''}</p>
+          <h1 className="text-2xl font-semibold text-foreground">{canManage ? 'Reports' : 'My Time'}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
         {rows.length > 0 && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => exportCsv(rows, selectedClient ? `${range.label} - ${selectedClient.name}` : range.label)}
+              onClick={() => exportCsv(rows, subtitle.replace(/ · /g, ' - '))}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -280,7 +301,7 @@ export default function ReportsPage() {
               CSV
             </button>
             <button
-              onClick={() => exportPdf(rows, selectedClient ? `${range.label} - ${selectedClient.name}` : range.label, userName)}
+              onClick={() => exportPdf(rows, subtitle.replace(/ · /g, ' - '), memberName ?? userName)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-all shadow-sm shadow-primary/30"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -309,21 +330,43 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      {/* Client filter */}
-      {clientList && clientList.length > 0 && (
-        <div className="mb-8">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {clientList && clientList.length > 0 && (
           <select
             value={clientId ?? ''}
             onChange={e => setClientId(e.target.value ? Number(e.target.value) : null)}
-            className="px-3 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+            className={SELECT_CLASS}
           >
             <option value="">All clients</option>
             {clientList.map(c => (
               <option key={c.clientId} value={c.clientId}>{c.name}</option>
             ))}
           </select>
-        </div>
-      )}
+        )}
+        {canManage && memberList && memberList.length > 0 && (
+          <select
+            value={memberId ?? ''}
+            onChange={e => setMemberId(e.target.value ? Number(e.target.value) : null)}
+            className={SELECT_CLASS}
+          >
+            <option value="">Everyone</option>
+            {memberList.map(u => (
+              <option key={u.userId} value={u.userId}>{[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}</option>
+            ))}
+          </select>
+        )}
+        <select
+          value={cover}
+          onChange={e => setCover(e.target.value as CoverFilter)}
+          className={SELECT_CLASS}
+          title="Holiday cover time is logged while covering a client for someone else"
+        >
+          <option value="include">Including holiday cover</option>
+          <option value="exclude">Excluding holiday cover</option>
+          <option value="only">Holiday cover only</option>
+        </select>
+      </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6">
@@ -343,12 +386,13 @@ export default function ReportsPage() {
                     <TableHead>Project</TableHead>
                     <TableHead className="text-right">Hours</TableHead>
                     <TableHead className="text-right">Rounded</TableHead>
+                    <TableHead className="text-right">Holiday cover</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                         No entries for this period
                       </TableCell>
                     </TableRow>
@@ -359,6 +403,9 @@ export default function ReportsPage() {
                       <TableCell className="text-muted-foreground">{row.projectName}</TableCell>
                       <TableCell className="text-right font-mono">{fh(row.totalHours)}</TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground">{fh(row.roundedTotalHours)}</TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        {row.coverRoundedTotalHours > 0 ? <span className="text-amber-400">{fh(row.coverRoundedTotalHours)}</span> : '—'}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

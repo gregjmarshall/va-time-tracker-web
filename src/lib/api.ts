@@ -1,9 +1,13 @@
 import type {
   AuthResponse,
   BillingRateResponse,
+  CapacityResponse,
   ClientActivityResponse,
+  ClientManagersResponse,
   ClientResponse,
   ClientWithRetainerResponse,
+  CoverFilter,
+  HolidayCoverResponse,
   PagedTimeEntryResponse,
   ProjectResponse,
   RetainerReportResponse,
@@ -168,10 +172,10 @@ export const timeEntries = {
 
 // Reports
 export const reports = {
-  summary: (token: string, params: { from?: string; to?: string; clientId?: number; userId?: number } = {}) =>
+  summary: (token: string, params: { from?: string; to?: string; clientId?: number; userId?: number; cover?: CoverFilter } = {}) =>
     req<SummaryReportResponse>('GET', '/api/reports/summary', { token, query: params }),
 
-  detailed: (token: string, params: { from?: string; to?: string; clientId?: number; userId?: number; page?: number; size?: number } = {}) =>
+  detailed: (token: string, params: { from?: string; to?: string; clientId?: number; userId?: number; cover?: CoverFilter; page?: number; size?: number } = {}) =>
     req<PagedTimeEntryResponse>('GET', '/api/reports/detailed', { token, query: params }),
 
   retainer: (token: string) =>
@@ -244,4 +248,33 @@ export const slack = {
     req<SlackConfigResponse>('POST', '/api/slack/config', { token, body }),
   deleteConfig: (token: string, configId: number) =>
     req<void>('DELETE', `/api/slack/config/${configId}`, { token }),
+}
+
+// Holiday cover
+export const holidayCover = {
+  list: (token: string) => req<HolidayCoverResponse[]>('GET', '/api/holiday-cover', { token }),
+  mine: (token: string) => req<HolidayCoverResponse[]>('GET', '/api/holiday-cover/mine', { token }),
+  create: (token: string, body: { userId: number; clientIds: number[]; startDate: string; endDate?: string; note?: string }) =>
+    req<HolidayCoverResponse[]>('POST', '/api/holiday-cover', { token, body }),
+  update: (token: string, coverId: number, body: { startDate?: string; endDate?: string; clearEndDate?: boolean; note?: string }) =>
+    req<HolidayCoverResponse>('PUT', `/api/holiday-cover/${coverId}`, { token, body }),
+  end: (token: string, coverId: number) =>
+    req<HolidayCoverResponse | undefined>('POST', `/api/holiday-cover/${coverId}/end`, { token }),
+  delete: (token: string, coverId: number) =>
+    req<void>('DELETE', `/api/holiday-cover/${coverId}`, { token }),
+}
+
+// Capacity
+export const capacity = {
+  get: (token: string, params: { month?: string; userId?: number } = {}) =>
+    req<CapacityResponse>('GET', '/api/capacity', { token, query: params }),
+  setAllocation: (token: string, body: { userId: number; clientId: number; monthlyHours: number; fromMonth?: string }) =>
+    req<void>('PUT', '/api/capacity/allocations', { token, body }),
+}
+
+// Client managers (who oversees which client)
+export const clientManagers = {
+  list: (token: string) => req<ClientManagersResponse[]>('GET', '/api/client-managers', { token }),
+  set: (token: string, clientId: number, userIds: number[]) =>
+    req<ClientManagersResponse>('PUT', `/api/client-managers/${clientId}`, { token, body: { userIds } }),
 }

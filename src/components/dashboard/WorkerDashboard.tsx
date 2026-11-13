@@ -7,10 +7,12 @@ import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import { ManualEntryDialog } from '@/components/entries/ManualEntryDialog'
 import { TimerBar } from '@/components/timer/TimerBar'
+import { MyCapacityCard, MyCoverCard } from '@/components/dashboard/MyCoverAndCapacity'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { timeEntries, projects as projectsApi, clients as clientsApi, timerSession as timerSessionApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ProjectResponse, TimeEntryResponse, TimerSessionResponse } from '@/lib/types'
+import { invalidateTimeData } from '@/lib/queries'
 
 dayjs.extend(isoWeek)
 
@@ -121,9 +123,10 @@ function EntryRow({
 
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-bold text-white truncate group-hover:text-primary transition-colors">{entry.description || '—'}</p>
-        {(clientName || project) && (
+        {(clientName || project || entry.isCover) && (
           <p className="text-[12px] font-medium text-muted-foreground/50 mt-1 truncate">
             {[clientName, project?.name].filter(Boolean).join(' · ')}
+            {entry.isCover && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-amber-400">Holiday cover</span>}
           </p>
         )}
       </div>
@@ -215,9 +218,7 @@ export function WorkerDashboard() {
   const deleteMutation = useMutation({
     mutationFn: (entryId: number) => timeEntries.delete(token!, entryId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries-week'] })
-      queryClient.invalidateQueries({ queryKey: ['time-entries-recent'] })
+      invalidateTimeData(queryClient)
       toast.success('Entry deleted')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -261,11 +262,7 @@ export function WorkerDashboard() {
     .filter(Boolean) as { client: typeof clientList[0]; secs: number; lastProject?: ProjectResponse; colorIdx: number }[]
 
   function handleTimerChanged() {
-    queryClient.invalidateQueries({ queryKey: ['active-timer'] })
-    queryClient.invalidateQueries({ queryKey: ['time-entries'] })
-    queryClient.invalidateQueries({ queryKey: ['time-entries-week'] })
-    queryClient.invalidateQueries({ queryKey: ['time-entries-recent'] })
-    queryClient.invalidateQueries({ queryKey: ['timer-session'] })
+    invalidateTimeData(queryClient)
     refetchActive()
   }
 
@@ -348,6 +345,8 @@ export function WorkerDashboard() {
             {/* ── Right sidebar ── */}
             <div className="col-span-4 space-y-6">
 
+              <MyCoverCard />
+
               {/* Today's summary */}
               <div className="rounded-[32px] glass-card p-8 shadow-xl">
                 <p className="text-[11px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-8">Today&apos;s Summary</p>
@@ -405,6 +404,8 @@ export function WorkerDashboard() {
               <div className="rounded-[32px] glass-card p-8 shadow-xl">
                 <WeeklyChart dailyHours={dailyHours} liveElapsedHours={liveElapsed / 3600} />
               </div>
+
+              <MyCapacityCard />
 
             </div>
           </div>

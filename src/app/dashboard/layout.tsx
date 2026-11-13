@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { timeEntries } from '@/lib/api'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { roleLabel } from '@/lib/types'
 
 const workerNav = [
   {
@@ -48,6 +49,16 @@ const adminNav = [
     href: '/dashboard/users',
     label: 'Team',
     icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  },
+  {
+    href: '/dashboard/capacity',
+    label: 'Capacity',
+    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M4 12h10M4 18h6" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  },
+  {
+    href: '/dashboard/cover',
+    label: 'Holiday cover',
+    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" strokeLinecap="round" strokeLinejoin="round" /></svg>,
   },
   {
     href: '/dashboard/reports',
@@ -134,7 +145,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-          {(user.role === 'VA' ? workerNav : adminNav).map((item) => {
+          {(user.role === 'TEAM_MEMBER' ? workerNav : adminNav).map((item) => {
             const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
             return (
               <Link
@@ -171,7 +182,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white/90 truncate">{displayName}</p>
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{user.role === 'MANAGER' ? 'Admin' : 'Worker'}</p>
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{roleLabel(user.role)}</p>
             </div>
             <button
               onClick={handleLogout}

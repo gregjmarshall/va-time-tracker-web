@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
@@ -11,13 +11,33 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { auth, users, projects as projectsApi, clients as clientsApi, clientTeamAccess } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { UserResponse } from '@/lib/types'
+import { ROLES, isAdmin, isManagerial, roleLabel, type Role, type UserResponse } from '@/lib/types'
+
+// ── Role Menu ─────────────────────────────────────────────────────────────────
+
+function RoleMenu({ user, onChange }: { user: UserResponse; onChange: (role: Role) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+        Change role
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {ROLES.filter((r) => r !== user.role).map((r) => (
+          <DropdownMenuItem key={r} className="cursor-pointer" onClick={() => onChange(r)}>
+            Make {roleLabel(r).toLowerCase()}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 // ── Add User Dialog ───────────────────────────────────────────────────────────
 
-function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; onClose: () => void; onCreated: (email: string) => void }) {
+function AddUserDialog({ role, onClose, onCreated }: { role: Role; onClose: () => void; onCreated: (email: string) => void }) {
   const { user: currentUser } = useAuthStore()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -25,7 +45,7 @@ function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; o
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  const label = role === 'VA' ? 'team member' : 'admin'
+  const label = roleLabel(role).toLowerCase()
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -38,7 +58,7 @@ function AddUserDialog({ role, onClose, onCreated }: { role: 'VA' | 'MANAGER'; o
         role,
       }),
     onSuccess: () => {
-      toast.success(`${role === 'VA' ? 'Team member' : 'Admin'} account created for ${email}`)
+      toast.success(`${roleLabel(role)} account created for ${email}`)
       onCreated(email)
     },
     onError: (err: Error) => setError(err.message),
@@ -153,20 +173,16 @@ function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () =
     enabled: !!token && clientList.length > 0,
   })
 
-  // Seed local state from server data (once loaded)
-  useEffect(() => {
-    if (!projectsReady && Object.keys(assignmentMap).length > 0) {
-      setLocalProjects({ ...assignmentMap })
-      setProjectsReady(true)
-    }
-  }, [assignmentMap, projectsReady])
+  // Seed local state from server data (once loaded) — adjusted during render rather than in an effect
+  if (!projectsReady && Object.keys(assignmentMap).length > 0) {
+    setLocalProjects({ ...assignmentMap })
+    setProjectsReady(true)
+  }
 
-  useEffect(() => {
-    if (!clientsReady && clientAccessData && Object.keys(clientAccessData).length > 0) {
-      setLocalClients({ ...clientAccessData })
-      setClientsReady(true)
-    }
-  }, [clientAccessData, clientsReady])
+  if (!clientsReady && clientAccessData && Object.keys(clientAccessData).length > 0) {
+    setLocalClients({ ...clientAccessData })
+    setClientsReady(true)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -296,14 +312,13 @@ function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () =
 export default function UsersPage() {
   const { token, user: currentUser } = useAuthStore()
   const queryClient = useQueryClient()
-  const [addWorkerOpen, setAddWorkerOpen] = useState(false)
-  const [addAdminOpen, setAddAdminOpen] = useState(false)
+  const [addRoleOpen, setAddRoleOpen] = useState<Role | null>(null)
   const [assignMember, setAssignMember] = useState<UserResponse | null>(null)
 
   const { data: userList = [], isLoading } = useQuery({
     queryKey: ['users', token],
     queryFn: () => users.list(token!),
-    enabled: !!token && currentUser?.role === 'MANAGER',
+    enabled: !!token && isManagerial(currentUser?.role),
   })
 
   const updateMutation = useMutation({
@@ -316,15 +331,16 @@ export default function UsersPage() {
     onError: (err: Error) => toast.error(err.message),
   })
 
-  if (currentUser?.role !== 'MANAGER') {
-    return <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Access restricted to admins</div>
+  if (!currentUser || !isManagerial(currentUser.role)) {
+    return <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Access restricted to managers and admins</div>
   }
 
-  const members = userList.filter((u) => u.role === 'VA')
-  const admins = userList.filter((u) => u.role === 'MANAGER')
+  const canManageStaff = isAdmin(currentUser.role)
+  const members = userList.filter((u) => u.role === 'TEAM_MEMBER')
+  const staff = userList.filter((u) => u.role === 'ADMIN' || u.role === 'MANAGER')
 
   function handleMemberCreated(email: string) {
-    setAddWorkerOpen(false)
+    setAddRoleOpen(null)
     queryClient.invalidateQueries({ queryKey: ['users'] }).then(() => {
       const newMember = userList.find((u) => u.email === email)
       if (newMember) setAssignMember(newMember)
@@ -338,10 +354,18 @@ export default function UsersPage() {
           <h1 className="text-2xl font-semibold">Team</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage team members and their access</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setAddAdminOpen(true)}>+ Add admin</Button>
-          <Button onClick={() => setAddWorkerOpen(true)}>+ Add team member</Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button>+ Add person</Button>} />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setAddRoleOpen('TEAM_MEMBER')} className="cursor-pointer">Team member</DropdownMenuItem>
+            {canManageStaff && (
+              <>
+                <DropdownMenuItem onClick={() => setAddRoleOpen('MANAGER')} className="cursor-pointer">Manager</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAddRoleOpen('ADMIN')} className="cursor-pointer">Admin</DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Team Members */}
@@ -367,7 +391,7 @@ export default function UsersPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No team members yet —{' '}
-                    <button className="text-primary hover:underline" onClick={() => setAddWorkerOpen(true)}>add one</button>
+                    <button className="text-primary hover:underline" onClick={() => setAddRoleOpen('TEAM_MEMBER')}>add one</button>
                   </TableCell>
                 </TableRow>
               )}
@@ -419,12 +443,15 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                       {u.userId !== currentUser.userId && (
-                        <button
-                          onClick={() => updateMutation.mutate({ userId: u.userId, body: { isActive: !u.isActive } })}
-                          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          {u.isActive ? 'Deactivate' : 'Reactivate'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {canManageStaff && <RoleMenu user={u} onChange={(role) => updateMutation.mutate({ userId: u.userId, body: { role } })} />}
+                          <button
+                            onClick={() => updateMutation.mutate({ userId: u.userId, body: { isActive: !u.isActive } })}
+                            className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            {u.isActive ? 'Deactivate' : 'Reactivate'}
+                          </button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -435,20 +462,21 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Admins */}
+      {/* Managers & Admins */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Admins</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Managers &amp; Admins</h2>
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Admin</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {admins.map((u) => {
+              {staff.map((u) => {
                 const initials = [u.firstName?.[0], u.lastName?.[0]].filter(Boolean).join('') || u.email[0].toUpperCase()
                 const displayName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email
                 return (
@@ -464,15 +492,13 @@ export default function UsersPage() {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">{roleLabel(u.role)}</Badge>
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{dayjs(u.createdAt).format('D MMM YYYY')}</TableCell>
                     <TableCell>
-                      {u.userId !== currentUser.userId && (
-                        <button
-                          onClick={() => updateMutation.mutate({ userId: u.userId, body: { role: 'VA' } })}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          Make team member
-                        </button>
+                      {canManageStaff && u.userId !== currentUser.userId && (
+                        <RoleMenu user={u} onChange={(role) => updateMutation.mutate({ userId: u.userId, body: { role } })} />
                       )}
                     </TableCell>
                   </TableRow>
@@ -483,11 +509,12 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {addWorkerOpen && (
-        <AddUserDialog role="VA" onClose={() => setAddWorkerOpen(false)} onCreated={handleMemberCreated} />
-      )}
-      {addAdminOpen && (
-        <AddUserDialog role="MANAGER" onClose={() => setAddAdminOpen(false)} onCreated={() => { setAddAdminOpen(false); queryClient.invalidateQueries({ queryKey: ['users'] }) }} />
+      {addRoleOpen && (
+        <AddUserDialog
+          role={addRoleOpen}
+          onClose={() => setAddRoleOpen(null)}
+          onCreated={addRoleOpen === 'TEAM_MEMBER' ? handleMemberCreated : () => { setAddRoleOpen(null); queryClient.invalidateQueries({ queryKey: ['users'] }) }}
+        />
       )}
       {assignMember && (
         <AssignDialog member={assignMember} onClose={() => setAssignMember(null)} />

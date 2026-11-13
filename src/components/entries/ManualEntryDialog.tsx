@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { timeEntries } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ProjectResponse, TimeEntryResponse } from '@/lib/types'
+import { invalidateTimeData } from '@/lib/queries'
 
 interface Props {
   open: boolean
@@ -49,7 +50,7 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
         isBillable,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      invalidateTimeData(queryClient)
       toast.success('Entry added')
       onClose()
     },
@@ -66,7 +67,7 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
         isBillable,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      invalidateTimeData(queryClient)
       toast.success('Entry updated')
       onClose()
     },

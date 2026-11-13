@@ -10,6 +10,7 @@ import { ManualEntryDialog } from './ManualEntryDialog'
 import { timeEntries } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { TimeEntryResponse, ProjectResponse } from '@/lib/types'
+import { invalidateTimeData } from '@/lib/queries'
 
 function formatDuration(seconds?: number): string {
   if (!seconds) return '—'
@@ -32,7 +33,7 @@ export function TimeEntryList({ entries, projects }: Props) {
   const deleteMutation = useMutation({
     mutationFn: (entryId: number) => timeEntries.delete(token!, entryId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['time-entries'] })
+      invalidateTimeData(queryClient)
       toast.success('Entry deleted')
     },
     onError: (err: Error) => toast.error(err.message),

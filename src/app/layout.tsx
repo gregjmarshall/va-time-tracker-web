@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   title: 'pip',
-  description: 'Time tracking for your VA team',
+  description: 'Time tracking for your team',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

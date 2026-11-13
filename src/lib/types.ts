@@ -1,4 +1,26 @@
-export type Role = 'VA' | 'MANAGER'
+export type Role = 'ADMIN' | 'MANAGER' | 'TEAM_MEMBER'
+
+/** Role hierarchy, highest first: ADMIN > MANAGER > TEAM_MEMBER. */
+export const ROLES: Role[] = ['ADMIN', 'MANAGER', 'TEAM_MEMBER']
+
+/** MANAGER or above — can run clients, projects, retainers, reports and team members. */
+export function isManagerial(role: Role | undefined): boolean {
+  return role === 'ADMIN' || role === 'MANAGER'
+}
+
+/** ADMIN only — can also manage Admin/Manager accounts, workspace settings, billing rates and integrations. */
+export function isAdmin(role: Role | undefined): boolean {
+  return role === 'ADMIN'
+}
+
+export function roleLabel(role: Role): string {
+  switch (role) {
+    case 'ADMIN': return 'Admin'
+    case 'MANAGER': return 'Manager'
+    case 'TEAM_MEMBER': return 'Team member'
+  }
+}
+
 export type RoundingMode = 'NONE' | 'UP' | 'DOWN' | 'NEAREST'
 
 export interface AuthResponse {
@@ -84,6 +106,8 @@ export interface TimeEntryResponse {
   isBillable: boolean
   isRunning: boolean
   createdAt: string
+  /** Logged while the user was covering this client for someone. */
+  isCover?: boolean
 }
 
 export interface PagedTimeEntryResponse {
@@ -102,6 +126,8 @@ export interface SummaryRow {
   totalHours: number
   roundedTotalSeconds: number
   roundedTotalHours: number
+  coverRoundedTotalSeconds: number
+  coverRoundedTotalHours: number
 }
 
 export interface SummaryReportResponse {
@@ -197,4 +223,52 @@ export interface SlackConfigResponse {
   thresholdPct: number
   isActive: boolean
   createdAt: string
+}
+
+// ── Holiday cover ────────────────────────────────────────────────────────────
+
+export type CoverStatus = 'UPCOMING' | 'ACTIVE' | 'ENDED'
+export type CoverFilter = 'include' | 'exclude' | 'only'
+
+export interface HolidayCoverResponse {
+  coverId: number
+  userId: number
+  userName: string
+  clientId: number
+  clientName: string
+  startDate: string
+  endDate?: string | null
+  note?: string | null
+  status: CoverStatus
+  hoursLogged: number
+}
+
+// ── Capacity ─────────────────────────────────────────────────────────────────
+
+export interface ClientCapacity {
+  clientId: number | null
+  clientName: string
+  allocatedHours: number
+  usedHours: number
+  coverHours: number
+}
+
+export interface UserCapacity {
+  userId: number
+  userName: string
+  allocatedHours: number
+  usedHours: number
+  remainingHours: number
+  coverHours: number
+  clients: ClientCapacity[]
+}
+
+export interface CapacityResponse {
+  month: string
+  rows: UserCapacity[]
+}
+
+export interface ClientManagersResponse {
+  clientId: number
+  userIds: number[]
 }

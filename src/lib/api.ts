@@ -61,8 +61,9 @@ export const auth = {
   login: (email: string, password: string) =>
     req<AuthResponse>('POST', '/api/auth/login-workspace', { body: { email, password } }),
 
-  register: (body: { workspaceId: number; email: string; password: string; firstName?: string; lastName?: string; role?: string }) =>
-    req<AuthResponse>('POST', '/api/auth/register', { body }),
+  /** Create an account. Needs a Manager/Admin token (the backend refuses anonymous sign-up once a workspace has users). */
+  register: (token: string, body: { workspaceId: number; email: string; password: string; firstName?: string; lastName?: string; role?: string }) =>
+    req<AuthResponse>('POST', '/api/auth/register', { token, body }),
 
   me: (token: string) =>
     req<{ userId: number; email: string; firstName?: string; lastName?: string; role: string; workspaceId: number; isActive: boolean; fullVisibility: boolean }>(

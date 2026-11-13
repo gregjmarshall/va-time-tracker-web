@@ -38,7 +38,7 @@ function RoleMenu({ user, onChange }: { user: UserResponse; onChange: (role: Rol
 // ── Add User Dialog ───────────────────────────────────────────────────────────
 
 function AddUserDialog({ role, onClose, onCreated }: { role: Role; onClose: () => void; onCreated: (email: string) => void }) {
-  const { user: currentUser } = useAuthStore()
+  const { token, user: currentUser } = useAuthStore()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -49,7 +49,7 @@ function AddUserDialog({ role, onClose, onCreated }: { role: Role; onClose: () =
 
   const createMutation = useMutation({
     mutationFn: () =>
-      auth.register({
+      auth.register(token!, {
         workspaceId: currentUser!.workspaceId,
         email,
         password,

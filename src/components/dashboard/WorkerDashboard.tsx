@@ -8,6 +8,8 @@ import isoWeek from 'dayjs/plugin/isoWeek'
 import { ManualEntryDialog } from '@/components/entries/ManualEntryDialog'
 import { TimerBar } from '@/components/timer/TimerBar'
 import { MyCapacityCard, MyCoverCard } from '@/components/dashboard/MyCoverAndCapacity'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { timeEntries, projects as projectsApi, clients as clientsApi, timerSession as timerSessionApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
@@ -153,6 +155,7 @@ export function WorkerDashboard() {
   const queryClient = useQueryClient()
   const [manualOpen, setManualOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<TimeEntryResponse | null>(null)
+  const [deleteEntry, setDeleteEntry] = useState<TimeEntryResponse | null>(null)
 
   const today = dayjs().format('YYYY-MM-DD')
   const weekStart = dayjs().startOf('isoWeek').toISOString()
@@ -219,6 +222,7 @@ export function WorkerDashboard() {
     mutationFn: (entryId: number) => timeEntries.delete(token!, entryId),
     onSuccess: () => {
       invalidateTimeData(queryClient)
+      setDeleteEntry(null)
       toast.success('Entry deleted')
     },
     onError: (err: Error) => toast.error(err.message),
@@ -330,7 +334,7 @@ export function WorkerDashboard() {
                               clientName={client?.name}
                               colorIdx={i}
                               onEdit={() => setEditEntry(entry)}
-                              onDelete={() => deleteMutation.mutate(entry.entryId)}
+                              onDelete={() => setDeleteEntry(entry)}
                             />
                           )
                         })}
@@ -448,11 +452,32 @@ export function WorkerDashboard() {
       </div>
 
       <ManualEntryDialog
+        // Remount per entry so the form starts from that entry's values
+        key={editEntry ? `edit-${editEntry.entryId}` : manualOpen ? 'new' : 'closed'}
         open={manualOpen || !!editEntry}
         onClose={() => { setManualOpen(false); setEditEntry(null) }}
         projects={projectList}
+        clients={clientList}
         editEntry={editEntry}
       />
+
+      <Dialog open={!!deleteEntry} onOpenChange={(v) => { if (!v) setDeleteEntry(null) }}>
+        <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white text-lg">Delete this entry?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-1">
+            <span className="text-white font-semibold">{deleteEntry?.description || 'Untitled entry'}</span>
+            {deleteEntry && <> · {formatDuration(deleteEntry.durationSeconds)}</>}. This can&apos;t be undone.
+          </p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteEntry(null)} disabled={deleteMutation.isPending}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteEntry && deleteMutation.mutate(deleteEntry.entryId)} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

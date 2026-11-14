@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { timeEntries, timerSession as timerSessionApi, suggestions as suggestionsApi } from '@/lib/api'
+import { timeEntries, timerSession as timerSessionApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ProjectResponse, ClientResponse, TimeEntryResponse, TimerSessionResponse } from '@/lib/types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { invalidateTimeData } from '@/lib/queries'
+import { Button } from '@/components/ui/button'
+import { invalidateTimeData, useDescriptionRequired } from '@/lib/queries'
+import { ProjectPicker, ProjectSearchList } from './ProjectPicker'
+import { DescriptionInput } from './DescriptionInput'
 
 function formatElapsed(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
@@ -70,179 +72,13 @@ const AFFIRMATIONS = [
   "Tick tock — and you're making every second count! ⌚",
 ]
 
-// ── Two-step client → project dropdown ───────────────────────────────────────
-
-function ProjectPicker({
-  clientList, projectList, selectedProjectId, onSelect,
-}: {
-  clientList: ClientResponse[]
-  projectList: ProjectResponse[]
-  selectedProjectId: number | null
-  onSelect: (projectId: number | null) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [step, setStep] = useState<'clients' | 'projects'>('clients')
-  const [activeClientId, setActiveClientId] = useState<number | null>(null)
-  const [search, setSearch] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-
-  const selectedProject = projectList.find((p) => p.projectId === selectedProjectId)
-  const selectedClient = selectedProject ? clientList.find((c) => c.clientId === selectedProject.clientId) : null
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  const filteredClients = clientList.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
-  const filteredProjects = projectList
-    .filter((p) => p.clientId === activeClientId && p.isActive)
-    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => { setOpen((o) => !o); setStep('clients'); setSearch('') }}
-        className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/8 transition-all w-full text-left"
-      >
-        <svg className="w-4 h-4 flex-shrink-0 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span className={`flex-1 ${selectedProject ? 'text-white' : ''}`}>
-          {selectedProject
-            ? `${selectedClient?.name} · ${selectedProject.name}`
-            : 'Select project (optional)'}
-        </span>
-        {selectedProjectId ? (
-          <span role="button" className="text-muted-foreground/40 hover:text-white text-xs px-1"
-            onMouseDown={(e) => { e.stopPropagation(); onSelect(null) }}>✕</span>
-        ) : (
-          <svg className="w-4 h-4 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </button>
-
-      {open && (
-        <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-[#151737]/98 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-2xl overflow-hidden">
-          <div className="p-3 border-b border-white/5">
-            <input autoFocus
-              placeholder={step === 'clients' ? 'Search clients…' : 'Search projects…'}
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder:text-muted-foreground/50 outline-none focus:border-primary/50"
-            />
-          </div>
-          <div className="max-h-60 overflow-y-auto">
-            {step === 'clients' ? (
-              filteredClients.length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-8">No clients found</p>
-                : filteredClients.map((c) => (
-                  <button key={c.clientId} type="button"
-                    className="w-full text-left px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white flex items-center justify-between border-b border-white/5 last:border-0 transition-colors"
-                    onClick={() => { setActiveClientId(c.clientId); setStep('projects'); setSearch('') }}>
-                    {c.name}
-                    <svg className="w-4 h-4 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                ))
-            ) : (
-              <>
-                <button type="button"
-                  className="w-full text-left px-4 py-2.5 text-[11px] font-black text-muted-foreground/50 uppercase tracking-widest hover:bg-white/5 flex items-center gap-2 border-b border-white/5 transition-colors"
-                  onClick={() => { setStep('clients'); setSearch('') }}>
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {clientList.find((c) => c.clientId === activeClientId)?.name}
-                </button>
-                {filteredProjects.length === 0
-                  ? <p className="text-sm text-muted-foreground text-center py-8">No projects found</p>
-                  : filteredProjects.map((p) => (
-                    <button key={p.projectId} type="button"
-                      className="w-full text-left px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white border-b border-white/5 last:border-0 transition-colors"
-                      onClick={() => { onSelect(p.projectId); setOpen(false) }}>
-                      {p.name}
-                    </button>
-                  ))
-                }
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── List-style project picker inside the stop dialog ─────────────────────────
-
-function ForceProjectPicker({ clientList, projectList, onSelect, isPending }: {
-  clientList: ClientResponse[]
-  projectList: ProjectResponse[]
-  onSelect: (projectId: number) => void
-  isPending: boolean
-}) {
-  const [clientId, setClientId] = useState<number | null>(null)
-  const [search, setSearch] = useState('')
-  const filteredClients = clientList.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
-  const filteredProjects = projectList
-    .filter((p) => p.clientId === clientId && p.isActive)
-    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-
-  return (
-    <div className="space-y-3">
-      <input autoFocus
-        placeholder={clientId ? 'Search projects…' : 'Search clients…'}
-        value={search} onChange={(e) => setSearch(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-muted-foreground/50 outline-none focus:border-primary/50"
-      />
-      <div className="max-h-64 overflow-y-auto rounded-xl border border-white/5 divide-y divide-white/5">
-        {!clientId
-          ? filteredClients.map((c) => (
-            <button key={c.clientId} type="button" disabled={isPending}
-              className="w-full text-left px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white flex items-center justify-between transition-colors"
-              onClick={() => { setClientId(c.clientId); setSearch('') }}>
-              {c.name}
-              <svg className="w-4 h-4 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          ))
-          : <>
-            <button type="button"
-              className="w-full text-left px-4 py-2.5 text-[11px] font-black text-muted-foreground/50 uppercase tracking-widest hover:bg-white/5 flex items-center gap-2 transition-colors"
-              onClick={() => { setClientId(null); setSearch('') }}>
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {clientList.find((c) => c.clientId === clientId)?.name}
-            </button>
-            {filteredProjects.map((p) => (
-              <button key={p.projectId} type="button" disabled={isPending}
-                className="w-full text-left px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white transition-colors"
-                onClick={() => onSelect(p.projectId)}>
-                {isPending ? '…' : p.name}
-              </button>
-            ))}
-          </>
-        }
-      </div>
-    </div>
-  )
-}
-
 // ── Pause session persistence ─────────────────────────────────────────────────
 
 const PAUSE_KEY = 'va-timer-paused-session'
 
 interface PausedSession {
   accumuledSeconds: number
+  /** Every entry saved by pausing this session (name kept for stored sessions). */
   nullProjectEntryIds: number[]
   description: string
   selectedProjectId: number | null
@@ -295,7 +131,8 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     return initialPause ? 'paused' : 'idle'
   })
   const accumulatedRef = useRef(initialPause?.accumuledSeconds ?? 0)
-  const nullProjectEntryIdsRef = useRef<number[]>(initialPause?.nullProjectEntryIds ?? [])
+  // Entries already saved by earlier pauses of this session; finalised (or discarded) together
+  const segmentIdsRef = useRef<number[]>(initialPause?.nullProjectEntryIds ?? [])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [elapsed, setElapsed] = useState(initialPause?.accumuledSeconds ?? 0)
@@ -306,8 +143,9 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     activeEntry?.projectId ?? initialPause?.selectedProjectId ?? null
   )
   const [showStopDialog, setShowStopDialog] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [suggestionList, setSuggestionList] = useState<string[]>([])
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false)
+  const descriptionRequired = useDescriptionRequired()
+  const descriptionRef = useRef<HTMLInputElement>(null)
   const [affirmationIdx, setAffirmationIdx] = useState(() => Math.floor(Math.random() * AFFIRMATIONS.length))
 
   // Sync local state when a new active entry arrives (e.g. page reload with running timer)
@@ -346,15 +184,6 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [timerState, activeEntry?.isRunning, activeEntry?.startedAt]) // eslint-disable-line
 
-  // ── Description suggestions ───────────────────────────────────────
-  useEffect(() => {
-    if (!token || description.length < 2) { setSuggestionList([]); return }
-    const t = setTimeout(async () => {
-      try { const r = await suggestionsApi.search(token, description); setSuggestionList(r.suggestions) } catch { /**/ }
-    }, 300)
-    return () => clearTimeout(t)
-  }, [description, token])
-
   // ── Mutations ─────────────────────────────────────────────────────
 
   // Start a new backend entry (play / resume)
@@ -381,19 +210,17 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     mutationFn: () => timeEntries.stop(token!),
     onSuccess: (stoppedEntry) => {
       accumulatedRef.current = elapsed
-      if (!stoppedEntry.projectId) {
-        nullProjectEntryIdsRef.current.push(stoppedEntry.entryId)
-      }
+      segmentIdsRef.current.push(stoppedEntry.entryId)
       const session = {
         accumuledSeconds: accumulatedRef.current,
-        nullProjectEntryIds: nullProjectEntryIdsRef.current,
+        nullProjectEntryIds: segmentIdsRef.current,
         description,
         selectedProjectId,
       }
       savePause(session)
       saveSessionMutation.mutate({
         accumulatedSeconds: accumulatedRef.current,
-        entryIds: nullProjectEntryIdsRef.current,
+        entryIds: segmentIdsRef.current,
         description,
         projectId: selectedProjectId,
       })
@@ -405,33 +232,47 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     onError: (err: Error) => toast.error(err.message),
   })
 
-  // Final stop — stops (if running) and updates all null-project entries with the project
+  function resetTimer() {
+    clearSessionMutation.mutate()
+    invalidateTimeData(queryClient)
+    onChanged()
+    accumulatedRef.current = 0
+    segmentIdsRef.current = []
+    setTimerState('idle')
+    setElapsed(0)
+    setDescription('')
+    setSelectedProjectId(null)
+    setShowStopDialog(false)
+    setShowDiscardDialog(false)
+  }
+
+  // Final stop — stops (if running), then gives every segment of the session the same project
+  // and description
   const finalStopMutation = useMutation({
     mutationFn: async (projectId: number) => {
+      const ids = [...segmentIdsRef.current]
       if (timerState === 'running') {
-        await timeEntries.stop(token!, projectId)
+        ids.push((await timeEntries.stop(token!, projectId)).entryId)
       }
-      // Update any paused entries that had no project
-      if (nullProjectEntryIdsRef.current.length > 0) {
-        await Promise.all(
-          nullProjectEntryIdsRef.current.map((id) =>
-            timeEntries.update(token!, id, { projectId })
-          )
-        )
-      }
+      await Promise.all(ids.map((id) => timeEntries.update(token!, id, { projectId, description: description.trim() })))
     },
     onSuccess: () => {
-      clearSessionMutation.mutate()
-      invalidateTimeData(queryClient)
-      onChanged()
-      accumulatedRef.current = 0
-      nullProjectEntryIdsRef.current = []
-      setTimerState('idle')
-      setElapsed(0)
-      setDescription('')
-      setSelectedProjectId(null)
-      setShowStopDialog(false)
+      resetTimer()
       toast.success('Entry saved')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  // Discard — throws away all time tracked in this session without saving it
+  const discardMutation = useMutation({
+    mutationFn: async () => {
+      const ids = [...segmentIdsRef.current]
+      if (timerState === 'running' && activeEntry) ids.push(activeEntry.entryId)
+      await Promise.all(ids.map((id) => timeEntries.delete(token!, id)))
+    },
+    onSuccess: () => {
+      resetTimer()
+      toast.success('Timer discarded')
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -470,6 +311,11 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   }
 
   function handleStop() {
+    if (descriptionRequired && !description.trim()) {
+      toast.error('Add a description before saving')
+      descriptionRef.current?.focus()
+      return
+    }
     const projectId = selectedProjectId ?? activeEntry?.projectId ?? null
     if (!projectId) {
       setShowStopDialog(true)
@@ -486,7 +332,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   }
 
   function handleDescriptionBlur() {
-    if (timerState === 'running' && activeEntry && description !== activeEntry.description) {
+    if (timerState === 'running' && activeEntry && description.trim() && description !== activeEntry.description) {
       updateMutation.mutate({ description })
     }
   }
@@ -495,7 +341,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   const isRunning = timerState === 'running'
   const isPaused = timerState === 'paused'
   const isActive = isRunning || isPaused
-  const isBusy = startMutation.isPending || pauseMutation.isPending || finalStopMutation.isPending
+  const isBusy = startMutation.isPending || pauseMutation.isPending || finalStopMutation.isPending || discardMutation.isPending
 
   const displayProjectId = selectedProjectId ?? activeEntry?.projectId ?? null
   const displayProject = displayProjectId ? projectList.find((p) => p.projectId === displayProjectId) ?? null : null
@@ -505,29 +351,15 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     <div className="rounded-[32px] glass-card p-8 shadow-xl">
 
       {/* Description — always visible */}
-      <div className="relative mb-4">
-        <Input
-          placeholder="What are you working on? (optional)"
+      <div className="mb-4">
+        <DescriptionInput
+          ref={descriptionRef}
+          required={descriptionRequired}
           className="h-12 bg-white/5 border-white/10 focus:border-primary/40 rounded-2xl px-5 text-[14px] placeholder:text-muted-foreground/40"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => {
-            setTimeout(() => setShowSuggestions(false), 150)
-            handleDescriptionBlur()
-          }}
+          onChange={setDescription}
+          onBlur={handleDescriptionBlur}
         />
-        {showSuggestions && suggestionList.length > 0 && (
-          <div className="absolute top-full mt-2 w-full bg-[#151737]/98 border border-white/10 rounded-2xl shadow-2xl z-20 overflow-hidden backdrop-blur-2xl">
-            {suggestionList.map((s) => (
-              <button key={s}
-                className="w-full text-left px-5 py-3 text-[13px] font-bold hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"
-                onMouseDown={() => { setDescription(s); setShowSuggestions(false) }}>
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Project picker — always enabled */}
@@ -537,6 +369,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           projectList={projectList}
           selectedProjectId={displayProjectId}
           onSelect={handleProjectChange}
+          placeholder="Select project"
         />
       </div>
 
@@ -618,6 +451,15 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         )}
       </div>
 
+      {isActive && (
+        <div className="flex justify-center mt-4">
+          <button type="button" onClick={() => setShowDiscardDialog(true)} disabled={isBusy}
+            className="text-xs font-semibold text-muted-foreground/50 hover:text-rose-300 transition-colors disabled:opacity-50">
+            Discard timer
+          </button>
+        </div>
+      )}
+
       {/* Affirmation */}
       {isRunning && (
         <p className="text-center text-sm text-primary/60 font-medium mt-6">
@@ -636,12 +478,32 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
             <span className="text-white font-semibold">{formatElapsed(elapsed)}</span> entry.
             Click away to keep the timer running.
           </p>
-          <ForceProjectPicker
-            clientList={clientList}
-            projectList={projectList}
-            onSelect={(projectId) => finalStopMutation.mutate(projectId)}
-            isPending={finalStopMutation.isPending}
-          />
+          <div className="rounded-xl border border-white/5 overflow-hidden">
+            <ProjectSearchList
+              clientList={clientList}
+              projectList={projectList}
+              onSelect={(projectId) => finalStopMutation.mutate(projectId)}
+              disabled={finalStopMutation.isPending}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Discard confirmation */}
+      <Dialog open={showDiscardDialog} onOpenChange={(v) => { if (!v) setShowDiscardDialog(false) }}>
+        <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white text-lg">Discard this timer?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-1">
+            The <span className="text-white font-semibold">{formatElapsed(elapsed)}</span> tracked won&apos;t be saved. This can&apos;t be undone.
+          </p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowDiscardDialog(false)} disabled={discardMutation.isPending}>Keep timer</Button>
+            <Button variant="destructive" onClick={() => discardMutation.mutate()} disabled={discardMutation.isPending}>
+              {discardMutation.isPending ? 'Discarding…' : 'Discard'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

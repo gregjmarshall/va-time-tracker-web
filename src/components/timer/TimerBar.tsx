@@ -207,7 +207,10 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   // Stop backend entry without requiring project (used for pause)
   const pauseMutation = useMutation({
-    mutationFn: () => timeEntries.stop(token!),
+    mutationFn: async () => {
+      await pendingUpdateRef.current
+      return timeEntries.stop(token!)
+    },
     onSuccess: (stoppedEntry) => {
       accumulatedRef.current = elapsed
       segmentIdsRef.current.push(stoppedEntry.entryId)
@@ -250,6 +253,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   // and description
   const finalStopMutation = useMutation({
     mutationFn: async (projectId: number) => {
+      await pendingUpdateRef.current
       const ids = [...segmentIdsRef.current]
       if (timerState === 'running') {
         ids.push((await timeEntries.stop(token!, projectId)).entryId)
@@ -266,6 +270,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   // Discard — throws away all time tracked in this session without saving it
   const discardMutation = useMutation({
     mutationFn: async () => {
+      await pendingUpdateRef.current
       const ids = [...segmentIdsRef.current]
       if (timerState === 'running' && activeEntry) ids.push(activeEntry.entryId)
       await Promise.all(ids.map((id) => timeEntries.delete(token!, id)))
@@ -291,12 +296,17 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     },
   })
 
-  // Update active entry (description / project while running)
-  const updateMutation = useMutation({
-    mutationFn: (body: { description?: string; projectId?: number }) =>
-      timeEntries.update(token!, activeEntry!.entryId, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['active-timer'] }),
-  })
+  // Update the running entry (description / project while running). Updates are chained, and
+  // pause / stop / discard wait for them: the backend update rewrites the whole entry, so one still
+  // in flight when the timer stops would write it back as running.
+  const pendingUpdateRef = useRef<Promise<unknown>>(Promise.resolve())
+  function updateRunningEntry(body: { description?: string; projectId?: number }) {
+    const entryId = activeEntry!.entryId
+    pendingUpdateRef.current = pendingUpdateRef.current
+      .then(() => timeEntries.update(token!, entryId, body))
+      .then(() => queryClient.invalidateQueries({ queryKey: ['active-timer'] }))
+      .catch(() => { /* the final stop re-applies project and description */ })
+  }
 
   // ── Controls ──────────────────────────────────────────────────────
 
@@ -327,13 +337,13 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   function handleProjectChange(projectId: number | null) {
     setSelectedProjectId(projectId)
     if (timerState === 'running' && activeEntry && projectId !== null) {
-      updateMutation.mutate({ projectId })
+      updateRunningEntry({ projectId })
     }
   }
 
   function handleDescriptionBlur() {
     if (timerState === 'running' && activeEntry && description.trim() && description !== activeEntry.description) {
-      updateMutation.mutate({ description })
+      updateRunningEntry({ description })
     }
   }
 

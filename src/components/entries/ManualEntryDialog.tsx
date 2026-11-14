@@ -13,25 +13,31 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ProjectPicker } from '@/components/timer/ProjectPicker'
+import { DescriptionInput } from '@/components/timer/DescriptionInput'
 import { Label } from '@/components/ui/label'
 import { timeEntries } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { ProjectResponse, TimeEntryResponse } from '@/lib/types'
-import { invalidateTimeData } from '@/lib/queries'
+import type { ClientResponse, ProjectResponse, TimeEntryResponse } from '@/lib/types'
+import { invalidateTimeData, useDescriptionRequired } from '@/lib/queries'
 
 interface Props {
   open: boolean
   onClose: () => void
   projects: ProjectResponse[]
+  clients: ClientResponse[]
   editEntry?: TimeEntryResponse | null
 }
 
-export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props) {
-  const { token } = useAuthStore()
+export function ManualEntryDialog({ open, onClose, projects, clients, editEntry }: Props) {
+  const { token, user } = useAuthStore()
+  // Only Managers and Admins decide what's billable
+  const canSetBillable = user?.role !== 'TEAM_MEMBER'
+  const descriptionRequired = useDescriptionRequired()
   const queryClient = useQueryClient()
 
   const [description, setDescription] = useState(editEntry?.description ?? '')
-  const [projectId, setProjectId] = useState(editEntry ? String(editEntry.projectId) : '')
+  const [projectId, setProjectId] = useState<number | null>(editEntry?.projectId ?? null)
   const [startedAt, setStartedAt] = useState(
     editEntry ? dayjs(editEntry.startedAt).format('YYYY-MM-DDTHH:mm') : dayjs().subtract(1, 'hour').format('YYYY-MM-DDTHH:mm')
   )
@@ -43,11 +49,11 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
   const createMutation = useMutation({
     mutationFn: () =>
       timeEntries.create(token!, {
-        projectId: Number(projectId),
-        description,
+        projectId: projectId!,
+        description: description.trim(),
         startedAt: dayjs(startedAt).toISOString(),
         endedAt: dayjs(endedAt).toISOString(),
-        isBillable,
+        ...(canSetBillable ? { isBillable } : {}),
       }),
     onSuccess: () => {
       invalidateTimeData(queryClient)
@@ -60,11 +66,11 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
   const updateMutation = useMutation({
     mutationFn: () =>
       timeEntries.update(token!, editEntry!.entryId, {
-        description,
-        projectId: Number(projectId),
+        description: description.trim(),
+        projectId: projectId!,
         startedAt: dayjs(startedAt).toISOString(),
         endedAt: dayjs(endedAt).toISOString(),
-        isBillable,
+        ...(canSetBillable ? { isBillable } : {}),
       }),
     onSuccess: () => {
       invalidateTimeData(queryClient)
@@ -75,7 +81,7 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
   })
 
   const isPending = createMutation.isPending || updateMutation.isPending
-  const canSave = description.trim().length > 0 && projectId && startedAt && endedAt
+  const canSave = (!descriptionRequired || description.trim().length > 0) && projectId !== null && startedAt && endedAt
 
   function handleSave() {
     if (editEntry) updateMutation.mutate()
@@ -92,28 +98,23 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>Description</Label>
-            <Input
-              placeholder="What did you work on?"
+            <DescriptionInput
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
+              required={descriptionRequired}
+              placeholder="What did you work on?"
               autoFocus
             />
           </div>
 
           <div className="space-y-1.5">
             <Label>Project</Label>
-            <select
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
-            >
-              <option value="" disabled>Select project</option>
-              {projects.map((p) => (
-                <option key={p.projectId} value={String(p.projectId)}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <ProjectPicker
+              clientList={clients}
+              projectList={projects}
+              selectedProjectId={projectId}
+              onSelect={setProjectId}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -135,7 +136,7 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {canSetBillable && <div className="flex items-center gap-2">
             <input
               id="billable"
               type="checkbox"
@@ -144,7 +145,7 @@ export function ManualEntryDialog({ open, onClose, projects, editEntry }: Props)
               className="rounded border-border accent-primary h-4 w-4"
             />
             <Label htmlFor="billable" className="cursor-pointer font-normal">Billable</Label>
-          </div>
+          </div>}
         </div>
 
         <DialogFooter>

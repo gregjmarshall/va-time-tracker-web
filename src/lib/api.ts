@@ -80,6 +80,8 @@ export const auth = {
 // Workspace
 export const workspace = {
   get: (token: string) => req<WorkspaceResponse>('GET', '/api/workspace', { token }),
+  update: (token: string, body: { name?: string; descriptionRequired?: boolean }) =>
+    req<WorkspaceResponse>('PUT', '/api/workspace', { token, body }),
 }
 
 // Clients

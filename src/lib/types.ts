@@ -49,6 +49,8 @@ export interface WorkspaceResponse {
   subdomain: string
   logoUrl?: string
   primaryColor?: string
+  /** When true, time entries can't be saved without a description. */
+  descriptionRequired: boolean
   createdAt: string
 }
 

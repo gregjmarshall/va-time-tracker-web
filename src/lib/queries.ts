@@ -1,4 +1,6 @@
-import type { QueryClient } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
+import { workspace } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 
 /**
  * Query key roots whose data is derived from logged time. Any change to a time entry or timer
@@ -28,4 +30,20 @@ export function invalidateTimeData(queryClient: QueryClient) {
   return queryClient.invalidateQueries({
     predicate: (q) => TIME_DERIVED_ROOTS.has(String(q.queryKey[0])),
   })
+}
+
+/** The signed-in user's workspace (settings such as whether descriptions are required). */
+export function useWorkspace() {
+  const { token } = useAuthStore()
+  return useQuery({
+    queryKey: ['workspace', token],
+    queryFn: () => workspace.get(token!),
+    enabled: !!token,
+    staleTime: 60_000,
+  })
+}
+
+/** Whether time entries need a description. Defaults to true until the workspace loads. */
+export function useDescriptionRequired() {
+  return useWorkspace().data?.descriptionRequired ?? true
 }

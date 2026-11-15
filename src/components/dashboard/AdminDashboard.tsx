@@ -50,7 +50,7 @@ function TopBars({ title, rows, empty }: { title: string; rows: { key: number; l
                 <span className={`flex items-center gap-2 truncate ${i === 0 ? 'font-semibold' : 'text-muted-foreground'}`}>
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: r.color }} />{r.label}
                 </span>
-                <span className="font-mono tabular-nums ml-3">{formatHours(r.hours)}</span>
+                <span className="num ml-3">{formatHours(r.hours)}</span>
               </div>
               <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${max ? (r.hours / max) * 100 : 0}%`, background: r.color, opacity: i === 0 ? 1 : 0.7 }} />
@@ -118,21 +118,21 @@ export function AdminDashboard() {
           <p className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
             <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.sky}26`, color: ACCENT.sky }}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg></span>Hours
           </p>
-          <p className="text-3xl font-semibold font-mono">{isLoading ? '…' : formatHours(total)}</p>
+          <p className="num text-3xl font-semibold">{isLoading ? '…' : formatHours(total)}</p>
           <p className="text-xs text-muted-foreground mt-1">{periodLabel} · since {from.format('D MMM')}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
             <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.teal}26`, color: ACCENT.teal }}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M16 6.5A4 4 0 0 0 9 9v4m-3 6h12M6 13h8M9 13v2a4 4 0 0 1-3 4" strokeLinecap="round" strokeLinejoin="round" /></svg></span>Billable
           </p>
-          <p className="text-3xl font-semibold font-mono">{isLoading ? '…' : `${billablePct}%`}</p>
+          <p className="num text-3xl font-semibold">{isLoading ? '…' : `${billablePct}%`}</p>
           <p className="text-xs text-muted-foreground mt-1">{formatHours(overview?.billableHours ?? 0)} of {formatHours(total)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
             <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.coral}26`, color: ACCENT.coral }}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" strokeLinecap="round" strokeLinejoin="round" /></svg></span>Retainers at risk
           </p>
-          <p className={`text-3xl font-semibold font-mono ${atRisk ? 'text-coral' : ''}`}>{atRisk}</p>
+          <p className={`num text-3xl font-semibold ${atRisk ? 'text-coral' : ''}`}>{atRisk}</p>
           <p className="text-xs text-muted-foreground mt-1">of {retainers.length} this month, likely to go unused</p>
         </div>
       </div>
@@ -171,7 +171,7 @@ export function AdminDashboard() {
                         <p className="text-sm font-medium truncate">
                           {row.clientName}{row.projectName && <span className="text-muted-foreground"> · {row.projectName}</span>}
                         </p>
-                        <p className="text-sm font-mono tabular-nums flex-shrink-0">
+                        <p className="text-sm num flex-shrink-0">
                           {formatHours(row.actualHours)} <span className="text-muted-foreground">/ {formatHours(row.retainerHours!)}</span>
                         </p>
                       </div>

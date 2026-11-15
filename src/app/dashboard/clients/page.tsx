@@ -34,8 +34,8 @@ function RetainerBar({ status }: { status: RetainerUsage }) {
       {status.retainerHours ? (
         <>
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{status.actualHoursThisMonth.toFixed(1)}h / {status.retainerHours}h</span>
-            {used !== null && <span>{used}%</span>}
+            <span className="num">{status.actualHoursThisMonth.toFixed(1)}h / {status.retainerHours}h</span>
+            {used !== null && <span className="num">{used}%</span>}
           </div>
           <Progress
             value={Math.min(used ?? 0, 100)}
@@ -426,7 +426,7 @@ export default function ClientsPage() {
                             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: clientColor(client.clientId) }} />
                             <span className="flex-1">{p.name}</span>
                             {p.budgetHours && (
-                              <span className={`text-xs tabular-nums ${isOver ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              <span className={`num text-xs ${isOver ? 'text-destructive' : 'text-muted-foreground'}`}>
                                 {logged.toFixed(1)}h / {p.budgetHours}h
                               </span>
                             )}

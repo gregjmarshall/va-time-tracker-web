@@ -106,10 +106,17 @@
 }
 
 @layer utilities {
+  /* Flat card: solid surface, hairline border, barely-there shadow */
   .glass-card {
-    background-color: color-mix(in srgb, var(--card) 40%, transparent);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: var(--shadow-glass);
+    background-color: color-mix(in srgb, var(--card) 70%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Hours, durations and counts: one consistent numeric style */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 }

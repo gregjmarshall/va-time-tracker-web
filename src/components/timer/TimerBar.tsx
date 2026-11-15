@@ -363,7 +363,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         />
       </div>
       <div className="w-20 flex-shrink-0 text-right">
-        <span className={`font-mono text-lg font-semibold tabular-nums ${isActive ? 'text-white' : 'text-muted-foreground/40'}`}>
+        <span className={`num text-lg font-semibold ${isActive ? 'text-white' : 'text-muted-foreground/40'}`}>
           {formatElapsed(elapsed)}
         </span>
         {isPaused && <span className="block text-[9px] font-black text-sun uppercase tracking-[0.15em] -mt-0.5">Paused</span>}

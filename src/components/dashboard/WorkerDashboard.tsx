@@ -74,7 +74,7 @@ function WeeklyChart({ dailyHours, liveElapsedHours }: { dailyHours: number[], l
                   background: isToday
                     ? 'linear-gradient(180deg, #664ec2 0%, #7c5cf6 100%)'
                     : h > 0 ? 'rgba(102,78,194,0.45)' : 'rgba(102,78,194,0.1)',
-                  boxShadow: isToday && h > 0 ? '0 4px 12px rgba(124,92,246,0.4)' : 'none',
+                  
                 }}
               />
             </div>
@@ -95,7 +95,7 @@ function WeeklyChart({ dailyHours, liveElapsedHours }: { dailyHours: number[], l
 
       <div className="flex items-center justify-between pt-4 border-t border-border/50">
         <span className="text-xs font-medium text-muted-foreground">This Week</span>
-        <span className="text-sm font-bold">{formatDuration(weekTotal * 3600)}</span>
+        <span className="num text-sm font-semibold">{formatDuration(weekTotal * 3600)}</span>
       </div>
     </div>
   )
@@ -110,16 +110,16 @@ function EntryRow({
   colorIdx: number; onEdit: () => void; onDelete: () => void
 }) {
   return (
-    <div className="flex items-center gap-8 py-6 border-b border-white/5 last:border-0 group transition-colors">
-      <div className="w-40 flex-shrink-0">
+    <div className="flex items-center gap-4 sm:gap-6 py-5 border-b border-white/5 last:border-0 group transition-colors">
+      <div className="w-32 sm:w-40 flex-shrink-0">
         <p className="text-[14px] font-bold text-white tracking-tight">
           {formatTime(entry.startedAt)}{entry.endedAt ? ` – ${formatTime(entry.endedAt)}` : ''}
         </p>
-        <p className="text-[12px] font-medium text-muted-foreground/60 mt-1">{formatDuration(entry.durationSeconds)}</p>
+        <p className="num text-[12px] text-muted-foreground/60 mt-1">{formatDuration(entry.durationSeconds)}</p>
       </div>
 
       <div className="flex-shrink-0">
-        <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]" style={{ backgroundColor: DOT_COLORS[colorIdx % DOT_COLORS.length] }} />
+        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DOT_COLORS[colorIdx % DOT_COLORS.length] }} />
       </div>
 
       <div className="flex-1 min-w-0">
@@ -127,7 +127,7 @@ function EntryRow({
         {(clientName || project || entry.isCover) && (
           <p className="text-[12px] font-medium text-muted-foreground/50 mt-1 truncate">
             {[clientName, project?.name].filter(Boolean).join(' · ')}
-            {entry.isCover && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-amber-400">Holiday cover</span>}
+            {entry.isCover && <span className="ml-2 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Holiday cover</span>}
           </p>
         )}
       </div>
@@ -276,22 +276,22 @@ export function WorkerDashboard() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-10 pb-10">
+      <div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-10">
         <div className="max-w-7xl mx-auto space-y-8">
-          <div className="grid grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8 items-start">
 
             {/* ── Left column ── */}
-            <div className="col-span-8 space-y-8">
+            <div className="xl:col-span-8 space-y-6 xl:space-y-8 min-w-0">
 
               {/* Recent entries */}
-              <div className="rounded-[32px] glass-card overflow-hidden shadow-2xl">
+              <div className="rounded-2xl glass-card overflow-hidden">
                 <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
                   <h2 className="text-lg font-bold tracking-tight">Recent entries</h2>
                   <button
                     onClick={() => setManualOpen(true)}
-                    className="text-[12px] font-black text-white/60 hover:text-white border border-white/10 rounded-2xl px-5 py-2 hover:bg-white/5 transition-all shadow-sm uppercase tracking-wider"
+                    className="text-sm font-medium text-white/70 hover:text-white border border-white/10 rounded-lg px-3 py-1.5 hover:bg-white/5 transition-colors"
                   >
-                    + Manual Entry
+                    + Manual entry
                   </button>
                 </div>
                 {(() => {
@@ -325,13 +325,13 @@ export function WorkerDashboard() {
             </div>
 
             {/* ── Right sidebar ── */}
-            <div className="col-span-4 space-y-6">
+            <div className="xl:col-span-4 space-y-6 min-w-0">
 
               <MyCoverCard />
 
               {/* Today's summary */}
-              <div className="rounded-[32px] glass-card p-8 shadow-xl">
-                <p className="text-[11px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-8">Today&apos;s Summary</p>
+              <div className="rounded-2xl glass-card p-6">
+                <p className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-8">Today&apos;s Summary</p>
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
@@ -350,7 +350,7 @@ export function WorkerDashboard() {
                             />
                           </svg>
                         )}
-                        <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner">
+                        <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center ">
                           <svg className="w-5 h-5 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
@@ -358,22 +358,22 @@ export function WorkerDashboard() {
                       </div>
                       <span className="text-[15px] font-bold text-muted-foreground/70">Time Tracked</span>
                     </div>
-                    <span className="text-xl font-bold tabular-nums tracking-tight">{formatDuration(todaySeconds + liveElapsed)}</span>
+                    <span className="num text-xl font-semibold">{formatDuration(todaySeconds + liveElapsed)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-5">
-                      <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center shadow-inner">
+                      <div className="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center ">
                         <svg className="w-5 h-5 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </div>
                       <span className="text-[15px] font-bold text-muted-foreground/70">Entries Logged</span>
                     </div>
-                    <span className="text-xl font-bold tabular-nums tracking-tight">{completedEntries.length}</span>
+                    <span className="num text-xl font-semibold">{completedEntries.length}</span>
                   </div>
                 </div>
                 <div className="mt-10 pt-8 border-t border-white/5">
-                  <a href="/dashboard/reports" className="text-[14px] text-primary hover:text-primary/80 font-black flex items-center justify-center gap-2 group transition-all">
+                  <a href="/dashboard/reports" className="text-[14px] text-primary hover:text-primary/80 font-semibold flex items-center justify-center gap-2 group transition-all">
                     View Report
                     <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
@@ -383,7 +383,7 @@ export function WorkerDashboard() {
               </div>
 
               {/* Weekly chart */}
-              <div className="rounded-[32px] glass-card p-8 shadow-xl">
+              <div className="rounded-2xl glass-card p-6">
                 <WeeklyChart dailyHours={dailyHours} liveElapsedHours={liveElapsed / 3600} />
               </div>
 
@@ -394,20 +394,20 @@ export function WorkerDashboard() {
 
           {/* Recent clients */}
           {recentClients.length > 0 && (
-            <div className="rounded-[32px] glass-card overflow-hidden shadow-2xl">
+            <div className="rounded-2xl glass-card overflow-hidden">
               <div className="flex items-center justify-between px-8 py-6 border-b border-white/5">
-                <h2 className="text-[11px] font-black text-muted-foreground/50 uppercase tracking-[0.2em]">Recent Clients</h2>
+                <h2 className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-wider">Recent Clients</h2>
               </div>
-              <div className="grid grid-cols-4 gap-6 p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4 p-6">
                 {recentClients.slice(0, 4).map(({ client, secs, lastProject, colorIdx }) => (
-                  <div key={client.clientId} className="flex items-center gap-5 p-5 rounded-[24px] border border-white/5 bg-[#1c1e3d]/40 hover:bg-[#30356c] transition-all group cursor-pointer shadow-sm">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black text-white flex-shrink-0 shadow-lg ${AVATAR_COLORS[colorIdx % AVATAR_COLORS.length]}`}>
+                  <div key={client.clientId} className="flex items-center gap-5 p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/5 transition-colors group cursor-pointer">
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-lg font-semibold text-white flex-shrink-0 ${AVATAR_COLORS[colorIdx % AVATAR_COLORS.length]}`}>
                       {client.name[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[15px] font-bold truncate tracking-tight group-hover:text-primary transition-colors leading-tight">{client.name}</p>
                       <p className="text-[12px] text-muted-foreground/50 font-medium truncate mt-1">{lastProject?.name}</p>
-                      <p className="text-[13px] text-muted-foreground/70 font-bold mt-2">{formatDuration(secs)} today</p>
+                      <p className="text-[13px] text-muted-foreground/70 mt-2"><span className="num">{formatDuration(secs)}</span> today</p>
                     </div>
                     <svg className="w-5 h-5 text-muted-foreground/10 group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
@@ -416,7 +416,7 @@ export function WorkerDashboard() {
                 ))}
               </div>
               <div className="px-8 py-5 border-t border-white/5 bg-white/5 flex justify-end">
-                <a href="/dashboard/clients" className="text-[13px] text-primary hover:text-white font-black flex items-center gap-2 transition-all">
+                <a href="/dashboard/clients" className="text-[13px] text-primary hover:text-white font-semibold flex items-center gap-2 transition-all">
                   View all clients
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />

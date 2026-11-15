@@ -17,12 +17,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
-import { clients, projects, retainers, reports, clientTeamAccess, clientManagers, users } from '@/lib/api'
+import { clients, projects, reports, clientTeamAccess, clientManagers, users } from '@/lib/api'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
-import { isManagerial, type ClientResponse, type ProjectResponse, type RetainerStatus, type UserResponse } from '@/lib/types'
+import { RetainerDialog } from '@/components/clients/RetainerDialog'
+import { isManagerial, type ClientResponse, type ProjectResponse, type RetainerUsage, type UserResponse } from '@/lib/types'
 
-function RetainerBar({ status }: { status: RetainerStatus }) {
+function RetainerBar({ status }: { status: RetainerUsage }) {
   const used = status.percentUsed !== undefined ? Math.round(status.percentUsed) : null
   return (
     <div className="mt-2 space-y-1">
@@ -38,7 +39,7 @@ function RetainerBar({ status }: { status: RetainerStatus }) {
           />
         </>
       ) : (
-        <p className="text-xs text-muted-foreground">{status.actualHoursThisMonth.toFixed(1)}h this month · no retainer</p>
+        <p className="text-xs text-muted-foreground">{status.actualHoursThisMonth.toFixed(1)}h this month · ad hoc</p>
       )}
     </div>
   )
@@ -98,7 +99,7 @@ export default function ClientsPage() {
   const [mineChoice, setMineOnly] = useState<boolean | null>(null)
   const [recentIds, setRecentIds] = useState<number[]>([])
   const [createClientOpen, setCreateClientOpen] = useState(false)
-  const [retainerClientId, setRetainerClientId] = useState<number | null>(null)
+  const [retainerClient, setRetainerClient] = useState<ClientResponse | null>(null)
   const [projectClientId, setProjectClientId] = useState<number | null>(null)
 
   useEffect(() => { setRecentIds(loadRecent()) }, [])
@@ -111,7 +112,6 @@ export default function ClientsPage() {
   const [projectName, setProjectName] = useState('')
   const [projectBudgetHours, setProjectBudgetHours] = useState('')
   const [projectType, setProjectType] = useState<'ongoing' | 'fixed'>('ongoing')
-  const [retainerForm, setRetainerForm] = useState({ monthlyHours: '', effectiveFrom: new Date().toISOString().slice(0, 10) })
 
   const { data: clientList = [], isLoading } = useQuery({
     queryKey: ['clients', token],
@@ -190,21 +190,6 @@ export default function ClientsPage() {
       setProjectName('')
       setProjectBudgetHours('')
       setProjectType('ongoing')
-    },
-    onError: (err: Error) => toast.error(err.message),
-  })
-
-  const retainerMutation = useMutation({
-    mutationFn: () =>
-      retainers.create(token!, {
-        clientId: retainerClientId!,
-        monthlyHours: Number(retainerForm.monthlyHours),
-        effectiveFrom: retainerForm.effectiveFrom,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients-with-retainer'] })
-      toast.success('Retainer set')
-      setRetainerClientId(null)
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -288,6 +273,8 @@ export default function ClientsPage() {
         {displayedClients.map((client) => {
           const detail = detailMap.get(client.clientId)
           const clientProjects = projectsByClient(client.clientId)
+          const projectRetainers = new Map((detail?.retainerStatus.projectRetainers ?? []).map((r) => [r.projectId, r]))
+          const hasRetainer = !!detail?.retainerStatus.retainerHours || projectRetainers.size > 0
           return (
             <div key={client.clientId} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
               {/* Client header */}
@@ -306,7 +293,7 @@ export default function ClientsPage() {
                     )}
                   </div>
                   <Badge variant={detail?.retainerStatus.isOver ? 'destructive' : 'secondary'} className="ml-2 flex-shrink-0">
-                    {detail?.retainerStatus.isOver ? 'Over' : detail?.retainerStatus.retainerHours ? 'Retainer' : 'No retainer'}
+                    {detail?.retainerStatus.isOver ? 'Over' : hasRetainer ? 'Retainer' : 'Ad hoc'}
                   </Badge>
                 </div>
                 {detail && <RetainerBar status={detail.retainerStatus} />}
@@ -337,11 +324,10 @@ export default function ClientsPage() {
                     className="text-xs"
                     onClick={() => {
                       touchClient(client.clientId)
-                      setRetainerClientId(client.clientId)
-                      setRetainerForm({ monthlyHours: '', effectiveFrom: new Date().toISOString().slice(0, 10) })
+                      setRetainerClient(client)
                     }}
                   >
-                    Set retainer
+                    {hasRetainer ? 'Edit retainer' : 'Set retainer'}
                   </Button>
                 </div>}
               </div>
@@ -352,6 +338,16 @@ export default function ClientsPage() {
                   <Separator />
                   <div className="px-5 py-3 space-y-3">
                     {clientProjects.map((p) => {
+                      const retainer = projectRetainers.get(p.projectId)
+                      if (retainer) return (
+                        <div key={p.projectId}>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                            <span className="flex-1">{p.name} <span className="text-xs">· own retainer</span></span>
+                          </div>
+                          <div className="ml-3.5"><RetainerBar status={retainer} /></div>
+                        </div>
+                      )
                       const logged = projectHoursMap.get(p.projectId) ?? 0
                       const pct = p.budgetHours ? Math.min((logged / p.budgetHours) * 100, 100) : null
                       const isOver = p.budgetHours ? logged > p.budgetHours : false
@@ -467,28 +463,7 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Set retainer dialog */}
-      <Dialog open={retainerClientId !== null} onOpenChange={(v) => !v && setRetainerClientId(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Set retainer</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Monthly hours</Label>
-              <Input type="number" placeholder="60" value={retainerForm.monthlyHours} onChange={(e) => setRetainerForm((f) => ({ ...f, monthlyHours: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Effective from</Label>
-              <Input type="date" value={retainerForm.effectiveFrom} onChange={(e) => setRetainerForm((f) => ({ ...f, effectiveFrom: e.target.value }))} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRetainerClientId(null)}>Cancel</Button>
-            <Button onClick={() => retainerMutation.mutate()} disabled={!retainerForm.monthlyHours || retainerMutation.isPending}>
-              {retainerMutation.isPending ? 'Saving…' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RetainerDialog key={retainerClient?.clientId ?? 'none'} client={retainerClient} projects={projectList} onClose={() => setRetainerClient(null)} />
     </div>
   )
 }

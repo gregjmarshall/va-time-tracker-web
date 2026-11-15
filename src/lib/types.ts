@@ -63,11 +63,25 @@ export interface ClientResponse {
   createdAt: string
 }
 
-export interface RetainerStatus {
+/** Hours this month against an allowance. */
+export interface RetainerUsage {
   retainerHours?: number
   actualHoursThisMonth: number
   percentUsed?: number
   isOver: boolean
+}
+
+export interface ProjectRetainerStatus extends RetainerUsage {
+  projectId: number
+  retainerHours: number
+}
+
+/**
+ * This month's client-wide retainer. actualHoursThisMonth leaves out hours on projects with their own
+ * retainer; those are in projectRetainers.
+ */
+export interface RetainerStatus extends RetainerUsage {
+  projectRetainers?: ProjectRetainerStatus[]
 }
 
 export interface ClientWithRetainerResponse {
@@ -143,6 +157,9 @@ export interface RetainerStatusRow {
   actualHours: number
   percentUsed?: number
   isOver: boolean
+  /** Set on a project retainer row */
+  projectId?: number
+  projectName?: string
 }
 
 export interface RetainerReportResponse {
@@ -152,6 +169,8 @@ export interface RetainerReportResponse {
 export interface RetainerResponse {
   retainerId: number
   clientId: number
+  /** Null/absent for the client-wide retainer */
+  projectId?: number | null
   workspaceId: number
   monthlyHours: number
   effectiveFrom: string

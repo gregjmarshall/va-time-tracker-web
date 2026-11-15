@@ -190,11 +190,17 @@ export const reports = {
 
 // Retainers
 export const retainers = {
+  /** History, newest first (Managers and Admins) */
   list: (token: string, clientId?: number) =>
     req<RetainerResponse[]>('GET', '/api/retainers', { token, query: clientId ? { clientId } : {} }),
-  create: (token: string, body: { clientId: number; monthlyHours: number; effectiveFrom: string; effectiveTo?: string }) =>
+  /** Sets monthly hours from a month ("YYYY-MM") onwards; projectId for a project retainer */
+  set: (token: string, body: { clientId: number; projectId?: number | null; monthlyHours: number; effectiveFrom: string }) =>
     req<RetainerResponse>('POST', '/api/retainers', { token, body }),
-  update: (token: string, retainerId: number, body: { monthlyHours?: number; effectiveTo?: string }) =>
+  /** Makes the client or project ad hoc from a month onwards */
+  end: (token: string, body: { clientId: number; projectId?: number | null; effectiveFrom: string }) =>
+    req<void>('POST', '/api/retainers/end', { token, body }),
+  /** Corrects one period's hours */
+  update: (token: string, retainerId: number, body: { monthlyHours: number }) =>
     req<RetainerResponse>('PUT', `/api/retainers/${retainerId}`, { token, body }),
 }
 

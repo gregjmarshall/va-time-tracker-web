@@ -33,7 +33,7 @@ export function MyCoverCard() {
         {covers.map((c) => (
           <div key={c.coverId} className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[15px] font-bold text-white truncate">{c.clientName}</p>
+              <p className="text-[15px] font-semibold text-white truncate">{c.clientName}</p>
               <p className="text-[12px] font-medium text-muted-foreground/60 mt-1">{coverDates(c.startDate, c.endDate)}</p>
               {c.note && <p className="text-[12px] text-muted-foreground/50 mt-1 truncate">{c.note}</p>}
             </div>
@@ -64,13 +64,13 @@ export function MyCapacityCard() {
     <div className="rounded-2xl glass-card p-6">
       <p className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-6">{dayjs().format('MMMM')} hours</p>
       <div className="flex items-baseline justify-between mb-3">
-        <span className="text-2xl font-bold tabular-nums">{fh(row.usedHours)}</span>
-        <span className="text-sm font-bold text-muted-foreground/60">of {fh(row.allocatedHours)}</span>
+        <span className="num text-2xl font-semibold">{fh(row.usedHours)}</span>
+        <span className="text-sm font-medium text-muted-foreground/60">of {fh(row.allocatedHours)}</span>
       </div>
       <div className="h-2 rounded-full bg-white/5 overflow-hidden">
         <div className={`h-full rounded-full ${over ? 'bg-rose-400' : 'bg-primary'}`} style={{ width: `${over ? 100 : pct}%` }} />
       </div>
-      <p className={`text-[12px] font-bold mt-2 ${over ? 'text-rose-400' : 'text-muted-foreground/60'}`}>
+      <p className={`text-[12px] font-medium mt-2 ${over ? 'text-rose-400' : 'text-muted-foreground/60'}`}>
         {over ? `${fh(-row.remainingHours)} over` : `${fh(row.remainingHours)} remaining`}
         {row.coverHours > 0 && <span className="text-amber-400"> · {fh(row.coverHours)} holiday cover</span>}
       </p>

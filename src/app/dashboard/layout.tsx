@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, useAuthHydrated } from '@/stores/auth'
 import { timeEntries } from '@/lib/api'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -78,9 +78,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const { token, user, clearAuth } = useAuthStore()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useAuthHydrated()
+  // Mobile only: the sidebar is a slide-in drawer below md.
+  const [navOpen, setNavOpen] = useState(false)
 
   useEffect(() => {
     if (mounted && !token) router.replace('/login')
@@ -105,9 +105,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 flex flex-col border-r border-sidebar-border"
+    <div className="flex h-dvh overflow-hidden">
+      {navOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setNavOpen(false)} aria-hidden />
+      )}
+      {/* Sidebar: static from md up, a drawer below */}
+      <aside
+        id="dashboard-nav"
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex flex-col border-r border-sidebar-border transition-transform duration-200 md:static md:translate-x-0',
+          navOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
         style={{ background: 'linear-gradient(180deg, #7c5cf6 0%, #3a258c 35%, #1c1e3d 100%)' }}>
         {/* Logo */}
         <div className="h-20 flex items-center px-6 mb-2">
@@ -142,6 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 prefetch={'stub' in item && item.stub ? false : undefined}
+                onClick={() => setNavOpen(false)}
                 className={cn(
                   'flex items-center gap-3.5 px-6 py-4 rounded-[20px] text-[15px] font-bold transition-all group relative overflow-hidden',
                   active
@@ -189,8 +198,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main: timer bar on every page, content scrolls beneath it */}
       <div className="flex-1 min-w-0 flex flex-col bg-background">
-        <header className="relative z-30 flex-shrink-0 border-b border-white/5 bg-background/80 backdrop-blur-md px-6 py-3">
-          <GlobalTimer />
+        <header className="relative z-30 flex-shrink-0 flex items-center gap-3 border-b border-white/5 bg-background/80 backdrop-blur-md px-4 sm:px-6 py-3">
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            className="md:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5"
+            aria-label="Open menu"
+            aria-controls="dashboard-nav"
+            aria-expanded={navOpen}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" /></svg>
+          </button>
+          <div className="flex-1 min-w-0"><GlobalTimer /></div>
         </header>
         <main className="flex-1 overflow-y-auto">
           {children}

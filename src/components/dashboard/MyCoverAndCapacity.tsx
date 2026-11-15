@@ -27,8 +27,8 @@ export function MyCoverCard() {
   if (covers.length === 0) return null
 
   return (
-    <div className="rounded-[32px] glass-card p-8 shadow-xl border border-amber-400/20">
-      <p className="text-[11px] font-black text-amber-400/80 uppercase tracking-[0.2em] mb-6">Holiday cover</p>
+    <div className="rounded-2xl glass-card p-6 border border-amber-400/20">
+      <p className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-6">Holiday cover</p>
       <div className="space-y-4">
         {covers.map((c) => (
           <div key={c.coverId} className="flex items-start justify-between gap-4">
@@ -37,7 +37,7 @@ export function MyCoverCard() {
               <p className="text-[12px] font-medium text-muted-foreground/60 mt-1">{coverDates(c.startDate, c.endDate)}</p>
               {c.note && <p className="text-[12px] text-muted-foreground/50 mt-1 truncate">{c.note}</p>}
             </div>
-            <span className={`text-[10px] font-black uppercase tracking-widest flex-shrink-0 ${c.status === 'ACTIVE' ? 'text-amber-400' : 'text-muted-foreground/50'}`}>
+            <span className={`text-[10px] font-semibold uppercase tracking-widest flex-shrink-0 ${c.status === 'ACTIVE' ? 'text-amber-400' : 'text-muted-foreground/50'}`}>
               {c.status === 'ACTIVE' ? `${fh(c.hoursLogged)} so far` : 'Upcoming'}
             </span>
           </div>
@@ -61,8 +61,8 @@ export function MyCapacityCard() {
   const over = row.remainingHours < 0
 
   return (
-    <div className="rounded-[32px] glass-card p-8 shadow-xl">
-      <p className="text-[11px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-6">{dayjs().format('MMMM')} hours</p>
+    <div className="rounded-2xl glass-card p-6">
+      <p className="text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-wider mb-6">{dayjs().format('MMMM')} hours</p>
       <div className="flex items-baseline justify-between mb-3">
         <span className="text-2xl font-bold tabular-nums">{fh(row.usedHours)}</span>
         <span className="text-sm font-bold text-muted-foreground/60">of {fh(row.allocatedHours)}</span>

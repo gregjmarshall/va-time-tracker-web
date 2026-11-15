@@ -314,3 +314,16 @@ export interface ClientManagersResponse {
   clientId: number
   userIds: number[]
 }
+
+/** Admin overview for a period; hours are rounded as billed */
+export interface OverviewResponse {
+  from: string
+  to: string
+  totalHours: number
+  billableHours: number
+  entryCount: number
+  /** Highest hours first */
+  clients: { clientId: number; clientName: string; hours: number }[]
+  /** Highest hours first */
+  members: { userId: number; name: string; hours: number }[]
+}

@@ -11,6 +11,7 @@ import type {
   RateType,
   CoverFilter,
   HolidayCoverResponse,
+  OverviewResponse,
   PagedTimeEntryResponse,
   ProjectResponse,
   RetainerReportResponse,
@@ -194,6 +195,10 @@ export const reports = {
 
   retainer: (token: string) =>
     req<RetainerReportResponse>('GET', '/api/reports/retainer', { token }),
+
+  /** Totals, hours per client and per team member for a period (Managers and Admins) */
+  overview: (token: string, params: { from: string; to?: string }) =>
+    req<OverviewResponse>('GET', '/api/reports/overview', { token, query: params }),
 
   exportCsv: (token: string, year?: number) =>
     req<string>('GET', '/api/reports/export/spreadsheet', { token, query: year ? { year } : {} }),

@@ -17,6 +17,7 @@ import type {
   ProjectResponse,
   ReportParams,
   RetainerReportResponse,
+  RetainerHistoryResponse,
   RetainerResponse,
   RetainerStatusRow,
   RoundingMode,
@@ -221,6 +222,11 @@ export const retainers = {
   /** Corrects one period's hours */
   update: (token: string, retainerId: number, body: { monthlyHours: number }) =>
     req<RetainerResponse>('PUT', `/api/retainers/${retainerId}`, { token, body }),
+  /** Month-by-month allowance vs used: month-end snapshots, plus live for this month */
+  history: (token: string, clientId: number, projectId?: number | null, months = 12) =>
+    req<RetainerHistoryResponse>('GET', '/api/retainers/history', {
+      token, query: projectId ? { clientId, projectId, months } : { clientId, months },
+    }),
 }
 
 // Billing Rates

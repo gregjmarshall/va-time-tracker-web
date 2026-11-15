@@ -90,7 +90,8 @@ export function RetainerDialog({ client, projects, onClose }: {
   // Scopes that have (or had) a retainer, client-wide first
   const scopes = [...new Set(rows.map((r) => r.projectId ?? null))]
     .sort((a, b) => (a === null ? -1 : b === null ? 1 : scopeName(a).localeCompare(scopeName(b))))
-  const hasAny = scope === null ? rows.some((r) => r.projectId == null) : rows.some((r) => r.projectId === scope)
+  // Only offer to end a retainer that is still in effect from the chosen month
+  const canEnd = rows.some((r) => (r.projectId ?? null) === scope && (!r.effectiveTo || r.effectiveTo >= `${month}-01`))
   const pending = setMutation.isPending || endMutation.isPending
 
   return (
@@ -129,7 +130,7 @@ export function RetainerDialog({ client, projects, onClose }: {
           </div>
 
           <div className="flex gap-2 justify-end">
-            {hasAny && (
+            {canEnd && (
               <Button variant="outline" disabled={pending} onClick={() => endMutation.mutate()}>
                 {endMutation.isPending ? 'Saving…' : 'Switch to ad hoc'}
               </Button>

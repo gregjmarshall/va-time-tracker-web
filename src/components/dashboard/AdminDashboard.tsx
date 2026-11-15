@@ -130,9 +130,9 @@ export function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <TopBars title="Top clients" empty={`No time tracked ${periodLabel}.`}
-          rows={(overview?.clients ?? []).slice(0, 3).map((c) => ({ key: c.clientId, label: c.clientName, hours: c.hours }))} />
+          rows={(overview?.clients ?? []).filter((c) => c.hours > 0).slice(0, 3).map((c) => ({ key: c.clientId, label: c.clientName, hours: c.hours }))} />
         <TopBars title="Busiest team members" empty={`No time tracked ${periodLabel}.`}
-          rows={(overview?.members ?? []).slice(0, 3).map((m) => ({ key: m.userId, label: m.name, hours: m.hours }))} />
+          rows={(overview?.members ?? []).filter((m) => m.hours > 0).slice(0, 3).map((m) => ({ key: m.userId, label: m.name, hours: m.hours }))} />
       </div>
 
       <div>

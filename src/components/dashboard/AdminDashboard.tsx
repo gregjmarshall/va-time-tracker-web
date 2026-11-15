@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import { reports } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { retainerBurn, type BurnStatus } from '@/lib/retainerBurn'
+import { ACCENT, clientColor } from '@/lib/colors'
 
 function formatHours(h: number) {
   return h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`
@@ -27,16 +28,16 @@ function periodStart(p: Period) {
 }
 
 const BURN_STYLE: Record<BurnStatus, { dot: string; bar: string; label: string }> = {
-  red: { dot: 'bg-red-500', bar: '[&>div]:bg-red-500', label: 'At risk' },
-  amber: { dot: 'bg-amber-500', bar: '[&>div]:bg-amber-500', label: 'Behind' },
-  green: { dot: 'bg-emerald-500', bar: '[&>div]:bg-emerald-500', label: 'On pace' },
+  red: { dot: 'bg-rose-500', bar: '[&>div]:bg-rose-500', label: 'At risk' },
+  amber: { dot: 'bg-sun', bar: '[&>div]:bg-sun', label: 'Behind' },
+  green: { dot: 'bg-teal', bar: '[&>div]:bg-teal', label: 'On pace' },
   over: { dot: 'bg-fuchsia-500', bar: '[&>div]:bg-fuchsia-500', label: 'Over' },
   early: { dot: 'bg-muted-foreground/40', bar: '', label: 'Too early' },
 }
 const BURN_ORDER: BurnStatus[] = ['red', 'over', 'amber', 'early', 'green']
 
 /** Horizontal bars for the top rows of a ranking, scaled to the largest. */
-function TopBars({ title, rows, empty }: { title: string; rows: { key: number; label: string; hours: number }[]; empty: string }) {
+function TopBars({ title, rows, empty }: { title: string; rows: { key: number; label: string; hours: number; color: string }[]; empty: string }) {
   const max = Math.max(...rows.map((r) => r.hours), 0)
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -46,11 +47,13 @@ function TopBars({ title, rows, empty }: { title: string; rows: { key: number; l
           {rows.map((r, i) => (
             <div key={r.key}>
               <div className="flex justify-between text-sm mb-1">
-                <span className={`truncate ${i === 0 ? 'font-semibold' : 'text-muted-foreground'}`}>{r.label}</span>
+                <span className={`flex items-center gap-2 truncate ${i === 0 ? 'font-semibold' : 'text-muted-foreground'}`}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: r.color }} />{r.label}
+                </span>
                 <span className="font-mono tabular-nums ml-3">{formatHours(r.hours)}</span>
               </div>
               <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                <div className={`h-full rounded-full ${i === 0 ? 'bg-primary' : 'bg-primary/40'}`} style={{ width: `${max ? (r.hours / max) * 100 : 0}%` }} />
+                <div className="h-full rounded-full" style={{ width: `${max ? (r.hours / max) * 100 : 0}%`, background: r.color, opacity: i === 0 ? 1 : 0.7 }} />
               </div>
             </div>
           ))}
@@ -112,27 +115,33 @@ export function AdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Hours</p>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.sky}26`, color: ACCENT.sky }}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg></span>Hours
+          </p>
           <p className="text-3xl font-semibold font-mono">{isLoading ? '…' : formatHours(total)}</p>
           <p className="text-xs text-muted-foreground mt-1">{periodLabel} · since {from.format('D MMM')}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Billable</p>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.teal}26`, color: ACCENT.teal }}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M16 6.5A4 4 0 0 0 9 9v4m-3 6h12M6 13h8M9 13v2a4 4 0 0 1-3 4" strokeLinecap="round" strokeLinejoin="round" /></svg></span>Billable
+          </p>
           <p className="text-3xl font-semibold font-mono">{isLoading ? '…' : `${billablePct}%`}</p>
           <p className="text-xs text-muted-foreground mt-1">{formatHours(overview?.billableHours ?? 0)} of {formatHours(total)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">Retainers at risk</p>
-          <p className={`text-3xl font-semibold font-mono ${atRisk ? 'text-red-400' : ''}`}>{atRisk}</p>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.coral}26`, color: ACCENT.coral }}><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" strokeLinecap="round" strokeLinejoin="round" /></svg></span>Retainers at risk
+          </p>
+          <p className={`text-3xl font-semibold font-mono ${atRisk ? 'text-coral' : ''}`}>{atRisk}</p>
           <p className="text-xs text-muted-foreground mt-1">of {retainers.length} this month, likely to go unused</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <TopBars title="Top clients" empty={`No time tracked ${periodLabel}.`}
-          rows={(overview?.clients ?? []).filter((c) => c.hours > 0).slice(0, 3).map((c) => ({ key: c.clientId, label: c.clientName, hours: c.hours }))} />
+          rows={(overview?.clients ?? []).filter((c) => c.hours > 0).slice(0, 3).map((c) => ({ key: c.clientId, label: c.clientName, hours: c.hours, color: clientColor(c.clientId) }))} />
         <TopBars title="Busiest team members" empty={`No time tracked ${periodLabel}.`}
-          rows={(overview?.members ?? []).filter((m) => m.hours > 0).slice(0, 3).map((m) => ({ key: m.userId, label: m.name, hours: m.hours }))} />
+          rows={(overview?.members ?? []).filter((m) => m.hours > 0).slice(0, 3).map((m, i) => ({ key: m.userId, label: m.name, hours: m.hours, color: [ACCENT.teal, ACCENT.sky, ACCENT.pink][i] }))} />
       </div>
 
       <div>

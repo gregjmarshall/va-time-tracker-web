@@ -21,6 +21,7 @@ import { clients, clientBilling, projects, reports, clientTeamAccess, clientMana
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
 import { RetainerDialog } from '@/components/clients/RetainerDialog'
+import { clientColor } from '@/lib/colors'
 import { ClientDetailsDialog } from '@/components/clients/ClientDetailsDialog'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -332,6 +333,7 @@ export default function ClientsPage() {
               <div className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full mr-2 align-middle" style={{ background: clientColor(client.clientId) }} />
                     {(isManagerial(user?.role) || user?.fullVisibility || teamAccessIds.has(client.clientId)) ? (
                       <Link href={`/dashboard/clients/${client.clientId}`} className="font-semibold text-foreground hover:text-primary transition-colors">
                         {client.name}
@@ -409,7 +411,7 @@ export default function ClientsPage() {
                       if (retainer) return (
                         <div key={p.projectId}>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: clientColor(client.clientId) }} />
                             <span className="flex-1">{p.name} <span className="text-xs">· own retainer</span></span>
                           </div>
                           <div className="ml-3.5"><RetainerBar status={retainer} /></div>
@@ -421,7 +423,7 @@ export default function ClientsPage() {
                       return (
                         <div key={p.projectId}>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: clientColor(client.clientId) }} />
                             <span className="flex-1">{p.name}</span>
                             {p.budgetHours && (
                               <span className={`text-xs tabular-nums ${isOver ? 'text-destructive' : 'text-muted-foreground'}`}>

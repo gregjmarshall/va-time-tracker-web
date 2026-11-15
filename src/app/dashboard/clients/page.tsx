@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -17,11 +17,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
-import { clients, projects, reports, clientTeamAccess, clientManagers, users } from '@/lib/api'
+import { clients, clientBilling, projects, reports, clientTeamAccess, clientManagers, users } from '@/lib/api'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
 import { RetainerDialog } from '@/components/clients/RetainerDialog'
-import { isManagerial, type ClientResponse, type ProjectResponse, type RetainerUsage, type UserResponse } from '@/lib/types'
+import { ClientDetailsDialog } from '@/components/clients/ClientDetailsDialog'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import { isAdmin, isManagerial, PAYMENT_METHOD_LABELS, type ClientBillingResponse, type ClientResponse, type ProjectResponse, type RetainerUsage, type UserResponse } from '@/lib/types'
 
 function RetainerBar({ status }: { status: RetainerUsage }) {
   const used = status.percentUsed !== undefined ? Math.round(status.percentUsed) : null
@@ -45,13 +48,24 @@ function RetainerBar({ status }: { status: RetainerUsage }) {
   )
 }
 
-const RECENT_KEY = 'va-recent-clients'
-function loadRecent(): number[] {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') } catch { return [] }
+dayjs.extend(relativeTime)
+
+type ClientFilter = 'all' | 'retainer' | 'adhoc' | 'active'
+type ClientSort = 'name' | 'tracked'
+const ACTIVE_DAYS = 30
+
+/** "2y 3m", "5m" or "new" since a YYYY-MM-DD date. */
+function tenure(since: string) {
+  const months = dayjs().diff(dayjs(since), 'month')
+  if (months < 1) return 'new'
+  const y = Math.floor(months / 12), m = months % 12
+  return [y && `${y}y`, m && `${m}m`].filter(Boolean).join(' ')
 }
-function pushRecent(id: number) {
-  const prev = loadRecent().filter(i => i !== id)
-  localStorage.setItem(RECENT_KEY, JSON.stringify([id, ...prev].slice(0, 5)))
+
+function formatRate(b?: ClientBillingResponse) {
+  if (!b?.rateType || b.rateAmount == null) return null
+  const amount = `£${Number(b.rateAmount).toLocaleString('en-GB', { maximumFractionDigits: 2 })}`
+  return b.rateType === 'HOURLY' ? `${amount}/h` : `${amount}/month`
 }
 
 // ── Overseeing managers ───────────────────────────────────────────────────────
@@ -97,17 +111,14 @@ export default function ClientsPage() {
 
   const [search, setSearch] = useState('')
   const [mineChoice, setMineOnly] = useState<boolean | null>(null)
-  const [recentIds, setRecentIds] = useState<number[]>([])
+  const [filter, setFilter] = useState<ClientFilter>('all')
+  const [sort, setSort] = useState<ClientSort>('name')
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [detailsClient, setDetailsClient] = useState<ClientResponse | null>(null)
   const [createClientOpen, setCreateClientOpen] = useState(false)
   const [retainerClient, setRetainerClient] = useState<ClientResponse | null>(null)
   const [projectClientId, setProjectClientId] = useState<number | null>(null)
 
-  useEffect(() => { setRecentIds(loadRecent()) }, [])
-
-  function touchClient(id: number) {
-    pushRecent(id)
-    setRecentIds(loadRecent())
-  }
   const [clientForm, setClientForm] = useState({ name: '', contactEmail: '' })
   const [projectName, setProjectName] = useState('')
   const [projectBudgetHours, setProjectBudgetHours] = useState('')
@@ -157,6 +168,14 @@ export default function ClientsPage() {
     onError: (err: Error) => toast.error(err.message),
   })
 
+  const admin = isAdmin(user?.role)
+  const { data: billingRows = [] } = useQuery({
+    queryKey: ['client-billing', token],
+    queryFn: () => clientBilling.list(token!),
+    enabled: !!token && admin,
+  })
+  const billingByClient = new Map(billingRows.map((b) => [b.clientId, b]))
+
   const { data: summaryData } = useQuery({
     queryKey: ['reports-summary-alltime', token],
     queryFn: () => reports.summary(token!),
@@ -203,13 +222,33 @@ export default function ClientsPage() {
   // Managers land on the clients they oversee; admins on everything
   const mineOnly = mineChoice ?? (user?.role === 'MANAGER' && myClients.length > 0)
   const q = search.trim().toLowerCase()
-  const displayedClients = q
-    ? (mineOnly ? myClients : activeClients).filter(c => c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
-    : mineOnly
-      ? myClients
-      : recentIds.length > 0
-      ? activeClients.filter(c => recentIds.includes(c.clientId)).sort((a, b) => recentIds.indexOf(a.clientId) - recentIds.indexOf(b.clientId))
-      : activeClients.slice(0, 5)
+  const clientHasRetainer = (id: number) => {
+    const st = detailMap.get(id)?.retainerStatus
+    return !!st?.retainerHours || (st?.projectRetainers?.length ?? 0) > 0
+  }
+  const lastTracked = (id: number) => detailMap.get(id)?.lastTrackedAt
+  const activeSince = dayjs().subtract(ACTIVE_DAYS, 'day')
+  const isActivelyTracked = (id: number) => { const t = lastTracked(id); return !!t && dayjs(t).isAfter(activeSince) }
+  const filterMatches = (c: ClientResponse) =>
+    filter === 'retainer' ? clientHasRetainer(c.clientId)
+      : filter === 'adhoc' ? !clientHasRetainer(c.clientId)
+      : filter === 'active' ? isActivelyTracked(c.clientId)
+      : true
+  const displayedClients = (mineOnly ? myClients : activeClients)
+    .filter((c) => !q || c.name.toLowerCase().includes(q) || c.contactEmail?.toLowerCase().includes(q))
+    .filter(filterMatches)
+    .sort((a, b) => sort === 'tracked'
+      ? (lastTracked(b.clientId) ?? '').localeCompare(lastTracked(a.clientId) ?? '') || a.name.localeCompare(b.name)
+      : a.name.localeCompare(b.name))
+  const filterCount = (f: ClientFilter) => {
+    const base = mineOnly ? myClients : activeClients
+    return f === 'all' ? base.length : base.filter((c) => (f === 'retainer' ? clientHasRetainer(c.clientId) : f === 'adhoc' ? !clientHasRetainer(c.clientId) : isActivelyTracked(c.clientId))).length
+  }
+  const toggleProjects = (id: number) => setExpanded((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
@@ -260,13 +299,25 @@ export default function ClientsPage() {
           ))}
         </div>
       )}
-      {!q && !mineOnly && activeClients.length > 0 && (
-        <p className="text-xs text-muted-foreground mb-3">
-          {recentIds.length > 0 ? 'Recently accessed' : 'Most recent'} · search to find all {activeClients.length} clients
-        </p>
+      {activeClients.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {([['all', 'All'], ['retainer', 'Retainer'], ['adhoc', 'Ad hoc'], ['active', `Tracked in last ${ACTIVE_DAYS} days`]] as [ClientFilter, string][]).map(([f, label]) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                filter === f ? 'bg-white/15 text-white border-white/20' : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white'
+              }`}>
+              {label} <span className="opacity-60">{filterCount(f)}</span>
+            </button>
+          ))}
+          <select value={sort} onChange={(e) => setSort(e.target.value as ClientSort)} aria-label="Sort clients"
+            className="ml-auto h-8 rounded-md border border-input bg-transparent px-2 text-xs outline-none [&>option]:bg-[#151737]">
+            <option value="name">Name A–Z</option>
+            <option value="tracked">Recently tracked</option>
+          </select>
+        </div>
       )}
-      {q && displayedClients.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-12">No clients match &quot;{search}&quot;</p>
+      {activeClients.length > 0 && displayedClients.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-12">{q ? <>No clients match &quot;{search}&quot;</> : 'No clients match this filter'}</p>
       )}
 
       <div className="space-y-4">
@@ -291,6 +342,14 @@ export default function ClientsPage() {
                     {client.contactEmail && (
                       <p className="text-xs text-muted-foreground mt-0.5">{client.contactEmail}</p>
                     )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {[
+                        client.clientSince && `Client since ${dayjs(client.clientSince).format('MMM YYYY')} (${tenure(client.clientSince)})`,
+                        admin && formatRate(billingByClient.get(client.clientId)),
+                        admin && billingByClient.get(client.clientId)?.paymentMethod && PAYMENT_METHOD_LABELS[billingByClient.get(client.clientId)!.paymentMethod!],
+                        detail && (detail.lastTrackedAt ? `Last tracked ${dayjs(detail.lastTrackedAt).fromNow()}` : 'Not tracked yet'),
+                      ].filter(Boolean).join(' · ')}
+                    </p>
                   </div>
                   <Badge variant={detail?.retainerStatus.isOver ? 'destructive' : 'secondary'} className="ml-2 flex-shrink-0">
                     {detail?.retainerStatus.isOver ? 'Over' : hasRetainer ? 'Retainer' : 'Ad hoc'}
@@ -311,19 +370,20 @@ export default function ClientsPage() {
                     size="sm"
                     className="text-xs"
                     onClick={() => {
-                      touchClient(client.clientId)
                       setProjectClientId(client.clientId)
                       setProjectName('')
                     }}
                   >
                     + Add project
                   </Button>
+                  <Button variant="outline" size="sm" className="text-xs" onClick={() => setDetailsClient(client)}>
+                    Edit details
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     className="text-xs"
                     onClick={() => {
-                      touchClient(client.clientId)
                       setRetainerClient(client)
                     }}
                   >
@@ -336,7 +396,14 @@ export default function ClientsPage() {
               {clientProjects.length > 0 && (
                 <>
                   <Separator />
-                  <div className="px-5 py-3 space-y-3">
+                  <button type="button" onClick={() => toggleProjects(client.clientId)} aria-expanded={expanded.has(client.clientId)}
+                    className="w-full flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                    <svg className={`w-3 h-3 transition-transform ${expanded.has(client.clientId) ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {clientProjects.length} {clientProjects.length === 1 ? 'project' : 'projects'}
+                  </button>
+                  {expanded.has(client.clientId) && <div className="px-5 pb-3 space-y-3">
                     {clientProjects.map((p) => {
                       const retainer = projectRetainers.get(p.projectId)
                       if (retainer) return (
@@ -373,7 +440,7 @@ export default function ClientsPage() {
                         </div>
                       )
                     })}
-                  </div>
+                  </div>}
                 </>
               )}
             </div>
@@ -463,6 +530,9 @@ export default function ClientsPage() {
         </DialogContent>
       </Dialog>
 
+      {detailsClient && (
+        <ClientDetailsDialog client={detailsClient} billing={billingByClient.get(detailsClient.clientId)} onClose={() => setDetailsClient(null)} />
+      )}
       <RetainerDialog key={retainerClient?.clientId ?? 'none'} client={retainerClient} projects={projectList} onClose={() => setRetainerClient(null)} />
     </div>
   )

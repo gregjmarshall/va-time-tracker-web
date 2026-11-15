@@ -61,6 +61,8 @@ export interface ClientResponse {
   contactEmail?: string
   isActive: boolean
   createdAt: string
+  /** YYYY-MM-DD, when the client relationship started */
+  clientSince?: string
 }
 
 /** Hours this month against an allowance. */
@@ -87,6 +89,25 @@ export interface RetainerStatus extends RetainerUsage {
 export interface ClientWithRetainerResponse {
   client: ClientResponse
   retainerStatus: RetainerStatus
+  /** Start of the most recent time entry on this client */
+  lastTrackedAt?: string
+}
+
+export type RateType = 'HOURLY' | 'MONTHLY'
+export type PaymentMethod = 'DIRECT_DEBIT' | 'ADVANCE_RETAINER' | 'ARREARS'
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  DIRECT_DEBIT: 'Direct debit',
+  ADVANCE_RETAINER: 'Advance retainer',
+  ARREARS: 'Arrears',
+}
+
+/** A client's rate and payment method (Admins only) */
+export interface ClientBillingResponse {
+  clientId: number
+  rateType?: RateType
+  rateAmount?: number
+  currency: string
+  paymentMethod?: PaymentMethod
 }
 
 export interface ProjectResponse {

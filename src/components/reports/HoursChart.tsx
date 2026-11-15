@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { ACCENT } from '@/lib/colors'
 import type { ChartBucket, ChartGranularity } from '@/lib/types'
@@ -31,11 +31,22 @@ function axis(max: number) {
 /** Stacked billable / non-billable bars, one per day, week or month. */
 export function HoursChart({ buckets, granularity }: { buckets: ChartBucket[]; granularity: ChartGranularity }) {
   const [hover, setHover] = useState<number | null>(null)
+  const plotRef = useRef<HTMLDivElement>(null)
+  const [plotWidth, setPlotWidth] = useState(0)
+  useEffect(() => {
+    const el = plotRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setPlotWidth(e.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   const totals = buckets.map(b => b.billableHours + b.nonBillableHours)
   const { top, step } = axis(Math.max(0, ...totals))
   const ticks = Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step)
-  // Thin out x labels so they never collide
-  const every = Math.max(1, Math.ceil(buckets.length / 16))
+  // Thin out x labels so they never collide: about one per LABEL_PX of width (day numbers are narrower)
+  const labelPx = granularity === 'day' ? 28 : 52
+  const maxLabels = plotWidth > 0 ? Math.max(2, Math.floor(plotWidth / labelPx)) : 8
+  const every = Math.max(1, Math.ceil(buckets.length / maxLabels))
   const h = buckets[hover ?? -1]
 
   return (
@@ -52,7 +63,7 @@ export function HoursChart({ buckets, granularity }: { buckets: ChartBucket[]; g
             <span key={t} className="num absolute right-0 -translate-y-1/2 text-[10px] text-muted-foreground" style={{ top: `${100 - (t / top) * 100}%` }}>{t}h</span>
           ))}
         </div>
-        <div className="flex-1 min-w-0">
+        <div ref={plotRef} className="flex-1 min-w-0">
           <div className="relative h-44">
             {ticks.map(t => (
               <div key={t} className="absolute inset-x-0 border-t border-white/5" style={{ top: `${100 - (t / top) * 100}%` }} />
@@ -63,7 +74,7 @@ export function HoursChart({ buckets, granularity }: { buckets: ChartBucket[]; g
                 return (
                   <div
                     key={b.start}
-                    className="relative flex-1 h-full flex flex-col justify-end cursor-default"
+                    className="relative flex-1 basis-0 min-w-0 h-full flex flex-col justify-end cursor-default"
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
                   >
@@ -79,8 +90,13 @@ export function HoursChart({ buckets, granularity }: { buckets: ChartBucket[]; g
           </div>
           <div className="flex gap-[2px] mt-1.5">
             {buckets.map((b, i) => (
-              <span key={b.start} className="num flex-1 text-center text-[10px] text-muted-foreground overflow-visible whitespace-nowrap">
-                {i % every === 0 ? bucketLabel(b.start, granularity) : ''}
+              // Same basis as the bar columns; the label is centred on its column and may overflow it
+              <span key={b.start} className="relative flex-1 basis-0 min-w-0 h-3.5">
+                {i % every === 0 && (
+                  <span className="num absolute left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">
+                    {bucketLabel(b.start, granularity)}
+                  </span>
+                )}
               </span>
             ))}
           </div>

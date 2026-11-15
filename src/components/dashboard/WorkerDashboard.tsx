@@ -6,14 +6,13 @@ import { toast } from 'sonner'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import { ManualEntryDialog } from '@/components/entries/ManualEntryDialog'
-import { TimerBar } from '@/components/timer/TimerBar'
 import { MyCapacityCard, MyCoverCard } from '@/components/dashboard/MyCoverAndCapacity'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { timeEntries, projects as projectsApi, clients as clientsApi, timerSession as timerSessionApi } from '@/lib/api'
+import { timeEntries, projects as projectsApi, clients as clientsApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import type { ProjectResponse, TimeEntryResponse, TimerSessionResponse } from '@/lib/types'
+import type { ProjectResponse, TimeEntryResponse } from '@/lib/types'
 import { invalidateTimeData } from '@/lib/queries'
 
 dayjs.extend(isoWeek)
@@ -163,7 +162,7 @@ export function WorkerDashboard() {
   const greeting = dayjs().hour() < 12 ? 'Good morning' : dayjs().hour() < 17 ? 'Good afternoon' : 'Good evening'
   const firstName = user?.firstName || user?.email.split('@')[0] || ''
 
-  const { data: activeEntry = null, refetch: refetchActive } = useQuery({
+  const { data: activeEntry = null } = useQuery({
     queryKey: ['active-timer', token],
     queryFn: async () => { try { return await timeEntries.active(token!) } catch { return null } },
     enabled: !!token,
@@ -178,13 +177,6 @@ export function WorkerDashboard() {
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [activeEntry?.isRunning, activeEntry?.startedAt])
-
-  const { data: pausedSession = null } = useQuery<TimerSessionResponse | null>({
-    queryKey: ['timer-session', token],
-    queryFn: async () => { try { return await timerSessionApi.get(token!) } catch { return null } },
-    enabled: !!token,
-    staleTime: Infinity,
-  })
 
   const { data: projectList = [] } = useQuery({
     queryKey: ['projects', token],
@@ -265,11 +257,6 @@ export function WorkerDashboard() {
     })
     .filter(Boolean) as { client: typeof clientList[0]; secs: number; lastProject?: ProjectResponse; colorIdx: number }[]
 
-  function handleTimerChanged() {
-    invalidateTimeData(queryClient)
-    refetchActive()
-  }
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -295,15 +282,6 @@ export function WorkerDashboard() {
 
             {/* ── Left column ── */}
             <div className="col-span-8 space-y-8">
-
-              {/* Timer bar */}
-              <TimerBar
-                activeEntry={activeEntry}
-                pausedSession={pausedSession}
-                projectList={projectList}
-                clientList={clientList}
-                onChanged={handleTimerChanged}
-              />
 
               {/* Recent entries */}
               <div className="rounded-[32px] glass-card overflow-hidden shadow-2xl">

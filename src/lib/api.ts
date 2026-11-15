@@ -9,11 +9,12 @@ import type {
   ClientBillingResponse,
   PaymentMethod,
   RateType,
-  CoverFilter,
+  DetailedReportResponse,
   HolidayCoverResponse,
   OverviewResponse,
   PagedTimeEntryResponse,
   ProjectResponse,
+  ReportParams,
   RetainerReportResponse,
   RetainerResponse,
   RetainerStatusRow,
@@ -32,7 +33,7 @@ const WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID ?? '1'
 async function req<T>(
   method: string,
   path: string,
-  opts: { token?: string; body?: unknown; query?: Record<string, string | number | undefined> } = {}
+  opts: { token?: string; body?: unknown; query?: Record<string, string | number | boolean | undefined> } = {}
 ): Promise<T> {
   let url = `${BASE}${path}`
   if (opts.query) {
@@ -187,11 +188,12 @@ export const timeEntries = {
 
 // Reports
 export const reports = {
-  summary: (token: string, params: { from?: string; to?: string; clientId?: number; userId?: number; cover?: CoverFilter } = {}) =>
+  summary: (token: string, params: ReportParams = {}) =>
     req<SummaryReportResponse>('GET', '/api/reports/summary', { token, query: params }),
 
-  detailed: (token: string, params: { from?: string; to?: string; clientId?: number; userId?: number; cover?: CoverFilter; page?: number; size?: number } = {}) =>
-    req<PagedTimeEntryResponse>('GET', '/api/reports/detailed', { token, query: params }),
+  /** Itemised entries, newest first */
+  detailed: (token: string, params: ReportParams & { page?: number; size?: number } = {}) =>
+    req<DetailedReportResponse>('GET', '/api/reports/detailed', { token, query: params }),
 
   retainer: (token: string) =>
     req<RetainerReportResponse>('GET', '/api/reports/retainer', { token }),

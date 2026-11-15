@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
@@ -9,9 +9,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { reports, clients, users } from '@/lib/api'
+import { SearchSelect } from '@/components/reports/SearchSelect'
+import { HoursChart } from '@/components/reports/HoursChart'
+import { reports, clients, projects, users } from '@/lib/api'
+import { clientColor } from '@/lib/colors'
+import { exportEntriesCsv, exportReportPdf } from '@/lib/reportExport'
 import { useAuthStore } from '@/stores/auth'
-import { isManagerial, type CoverFilter, type SummaryRow } from '@/lib/types'
+import { isManagerial, type CoverFilter, type ReportParams } from '@/lib/types'
 
 dayjs.extend(isoWeek)
 
@@ -19,9 +23,9 @@ function fh(h: number) {
   return h % 1 === 0 ? `${h}h` : `${h.toFixed(1)}h`
 }
 
-type RangeKey = 'ytd' | 'mtd' | 'last_month' | 'this_week' | 'last_week' | 'today' | 'yesterday'
+type RangeKey = 'ytd' | 'mtd' | 'last_month' | 'this_week' | 'last_week' | 'today' | 'yesterday' | 'custom'
 
-const RANGES: { key: RangeKey; label: string }[] = [
+const RANGES: { key: Exclude<RangeKey, 'custom'>; label: string }[] = [
   { key: 'ytd',        label: 'Year to date' },
   { key: 'mtd',        label: 'Month to date' },
   { key: 'last_month', label: 'Last month' },
@@ -31,202 +35,36 @@ const RANGES: { key: RangeKey; label: string }[] = [
   { key: 'yesterday',  label: 'Yesterday' },
 ]
 
-function resolveRange(key: RangeKey) {
+/** Local start/end of the range. Custom dates are inclusive YYYY-MM-DD. */
+function resolveRange(key: RangeKey, customFrom: string, customTo: string) {
   const now = dayjs()
+  const span = (from: dayjs.Dayjs, to: dayjs.Dayjs, label: string) => ({ from: from.toISOString(), to: to.toISOString(), label })
   switch (key) {
-    case 'ytd':        return { from: now.startOf('year').toISOString(),            to: now.toISOString(),                       label: `${now.year()} so far` }
-    case 'mtd':        return { from: now.startOf('month').toISOString(),           to: now.toISOString(),                       label: now.format('MMMM YYYY') }
-    case 'last_month': return { from: now.subtract(1,'month').startOf('month').toISOString(), to: now.subtract(1,'month').endOf('month').toISOString(), label: now.subtract(1,'month').format('MMMM YYYY') }
-    case 'this_week':  return { from: now.startOf('isoWeek').toISOString(),         to: now.toISOString(),                       label: 'This week' }
-    case 'last_week':  return { from: now.subtract(1,'week').startOf('isoWeek').toISOString(), to: now.subtract(1,'week').endOf('isoWeek').toISOString(), label: 'Last week' }
-    case 'today':      return { from: now.startOf('day').toISOString(),             to: now.endOf('day').toISOString(),          label: 'Today' }
-    case 'yesterday':  return { from: now.subtract(1,'day').startOf('day').toISOString(), to: now.subtract(1,'day').endOf('day').toISOString(), label: 'Yesterday' }
+    case 'ytd':        return span(now.startOf('year'), now.endOf('day'), `${now.year()} so far`)
+    case 'mtd':        return span(now.startOf('month'), now.endOf('day'), now.format('MMMM YYYY'))
+    case 'last_month': { const m = now.subtract(1, 'month'); return span(m.startOf('month'), m.endOf('month'), m.format('MMMM YYYY')) }
+    case 'this_week':  return span(now.startOf('isoWeek'), now.endOf('day'), 'This week')
+    case 'last_week':  { const w = now.subtract(1, 'week'); return span(w.startOf('isoWeek'), w.endOf('isoWeek'), 'Last week') }
+    case 'today':      return span(now.startOf('day'), now.endOf('day'), 'Today')
+    case 'yesterday':  { const y = now.subtract(1, 'day'); return span(y.startOf('day'), y.endOf('day'), 'Yesterday') }
+    case 'custom': {
+      const f = dayjs(customFrom), t = dayjs(customTo)
+      const sameYear = f.year() === t.year()
+      const label = customFrom === customTo ? f.format('D MMM YYYY') : `${f.format(sameYear ? 'D MMM' : 'D MMM YYYY')} – ${t.format('D MMM YYYY')}`
+      return span(f.startOf('day'), t.endOf('day'), label)
+    }
   }
 }
 
 const SELECT_CLASS = 'px-3 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer'
+const DATE_CLASS = 'px-3 py-1.5 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 [color-scheme:dark]'
+const PAGE_SIZE = 50
+const EXPORT_SIZE = 100_000
 
-// ── CSV export ────────────────────────────────────────────────────────────────
+type BillableFilter = 'all' | 'billable' | 'non_billable'
 
-function exportCsv(rows: SummaryRow[], rangeLabel: string) {
-  const header = 'Client,Project,Hours,Rounded Hours,Holiday Cover Hours\n'
-  const body = rows.map(r =>
-    `"${r.clientName}","${r.projectName}",${r.totalHours.toFixed(2)},${r.roundedTotalHours.toFixed(2)},${r.coverRoundedTotalHours.toFixed(2)}`
-  ).join('\n')
-  const blob = new Blob([header + body], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `time-report-${rangeLabel.replace(/\s+/g, '-').toLowerCase()}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-// ── PDF export (print window with inline SVG charts) ─────────────────────────
-
-const PIE_COLORS = ['#7c5cf6','#4ade80','#f59e0b','#f87171','#38bdf8','#a78bfa','#34d399','#fb923c','#818cf8','#e879f9']
-
-function buildPieSlices(rows: SummaryRow[]) {
-  const total = rows.reduce((s, r) => s + r.totalHours, 0)
-  if (total === 0) return []
-  let cursor = 0
-  return rows.map((r, i) => {
-    const frac = r.totalHours / total
-    const start = cursor
-    cursor += frac
-    const startAngle = start * 2 * Math.PI - Math.PI / 2
-    const endAngle = cursor * 2 * Math.PI - Math.PI / 2
-    const cx = 100, cy = 100, radius = 90
-    const x1 = cx + radius * Math.cos(startAngle)
-    const y1 = cy + radius * Math.sin(startAngle)
-    const x2 = cx + radius * Math.cos(endAngle)
-    const y2 = cy + radius * Math.sin(endAngle)
-    const large = frac > 0.5 ? 1 : 0
-    const path = `M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${radius},${radius} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`
-    return { path, color: PIE_COLORS[i % PIE_COLORS.length], label: r.projectName, hours: r.totalHours, pct: Math.round(frac * 100) }
-  })
-}
-
-function buildBarsSvg(rows: SummaryRow[]) {
-  const maxH = Math.max(...rows.map(r => r.totalHours), 1)
-  const W = 520, H = 140, barW = Math.min(40, (W - 40) / rows.length - 8), gap = (W - 40) / rows.length
-  return { W, H, barW, gap, maxH }
-}
-
-function exportPdf(rows: SummaryRow[], rangeLabel: string, userName: string) {
-  const total = rows.reduce((s, r) => s + r.totalHours, 0)
-  const totalRounded = rows.reduce((s, r) => s + r.roundedTotalHours, 0)
-  const slices = buildPieSlices(rows)
-  const { W, H, barW, gap, maxH } = buildBarsSvg(rows)
-
-  // Pie SVG
-  const pieSvg = rows.length === 0 ? '' : `
-    <svg width="200" height="200" viewBox="0 0 200 200">
-      ${slices.map(s => `<path d="${s.path}" fill="${s.color}" stroke="white" stroke-width="1.5"/>`).join('')}
-      <circle cx="100" cy="100" r="45" fill="white"/>
-      <text x="100" y="96" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a2e">${total.toFixed(1)}</text>
-      <text x="100" y="112" text-anchor="middle" font-size="10" fill="#666">hours</text>
-    </svg>`
-
-  // Bar chart SVG (no labels — colour key rendered below)
-  const barSvg = rows.length === 0 ? '' : `
-    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-      ${rows.map((r, i) => {
-        const bh = Math.max((r.totalHours / maxH) * H, 4)
-        const x = 20 + i * gap + (gap - barW) / 2
-        const y = H - bh
-        const color = PIE_COLORS[i % PIE_COLORS.length]
-        return `
-          <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW}" height="${bh.toFixed(1)}" rx="4" fill="${color}" opacity="0.85"/>
-          <text x="${(x + barW / 2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="#555">${r.totalHours.toFixed(1)}h</text>
-        `
-      }).join('')}
-    </svg>`
-
-  // Colour key for bar chart
-  const barKey = rows.length === 0 ? '' : `
-    <div style="display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 0 20px;">
-      ${rows.map((r, i) => `
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="width:10px;height:10px;border-radius:2px;background:${PIE_COLORS[i % PIE_COLORS.length]};flex-shrink:0"></div>
-          <span style="font-size:11px;color:#555">${r.projectName}</span>
-        </div>`).join('')}
-    </div>`
-
-  // Legend
-  const legend = slices.map(s => `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <div style="width:12px;height:12px;border-radius:3px;background:${s.color};flex-shrink:0"></div>
-      <span style="font-size:12px;color:#333;flex:1">${s.label}</span>
-      <span style="font-size:12px;font-weight:600;color:#333">${s.hours.toFixed(1)}h</span>
-      <span style="font-size:11px;color:#888;width:32px;text-align:right">${s.pct}%</span>
-    </div>`).join('')
-
-  // Table rows
-  const tableRows = rows.map((r, i) => `
-    <tr style="background:${i % 2 === 0 ? '#fafafa' : 'white'}">
-      <td style="padding:9px 14px;font-size:13px;font-weight:600;color:#222">${r.clientName}</td>
-      <td style="padding:9px 14px;font-size:13px;color:#555">${r.projectName}</td>
-      <td style="padding:9px 14px;font-size:13px;font-weight:600;color:#222;text-align:right">${r.totalHours.toFixed(2)}h</td>
-      <td style="padding:9px 14px;font-size:13px;color:#777;text-align:right">${r.roundedTotalHours.toFixed(2)}h</td>
-    </tr>`).join('')
-
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>Time Report — ${rangeLabel}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a2e; background: white; }
-    @page { margin: 0; }
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .no-print { display: none; }
-    }
-  </style>
-</head>
-<body>
-  <!-- Header -->
-  <div style="background:linear-gradient(135deg,#3a258c 0%,#7c5cf6 100%);padding:36px 48px;color:white;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;opacity:0.7;margin-bottom:8px">Time Report</div>
-    <div style="font-size:30px;font-weight:800;margin-bottom:4px">${rangeLabel}</div>
-    <div style="font-size:14px;opacity:0.7">${userName} · Generated ${dayjs().format('D MMMM YYYY')}</div>
-    <div style="display:flex;gap:40px;margin-top:28px;">
-      <div><div style="font-size:11px;opacity:0.6;text-transform:uppercase;letter-spacing:0.1em">Total Hours</div><div style="font-size:28px;font-weight:800;margin-top:2px">${total.toFixed(1)}h</div></div>
-      <div><div style="font-size:11px;opacity:0.6;text-transform:uppercase;letter-spacing:0.1em">Rounded</div><div style="font-size:28px;font-weight:800;margin-top:2px">${totalRounded.toFixed(1)}h</div></div>
-      <div><div style="font-size:11px;opacity:0.6;text-transform:uppercase;letter-spacing:0.1em">Projects</div><div style="font-size:28px;font-weight:800;margin-top:2px">${rows.length}</div></div>
-    </div>
-  </div>
-
-  <!-- Charts -->
-  ${rows.length > 0 ? `
-  <div style="display:flex;gap:40px;padding:36px 48px;border-bottom:1px solid #eee;align-items:flex-start;flex-wrap:wrap;">
-    <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;margin-bottom:16px">By Project</div>
-      ${pieSvg}
-    </div>
-    <div style="flex:1;min-width:220px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;margin-bottom:16px">Breakdown</div>
-      ${legend}
-    </div>
-  </div>
-  <div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;margin-bottom:16px">Hours by Project</div>
-    ${barSvg}
-    ${barKey}
-  </div>` : ''}
-
-  <!-- Table -->
-  <div style="padding:32px 48px 48px;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;margin-bottom:16px">Detailed Breakdown</div>
-    <table style="width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #eee;">
-      <thead>
-        <tr style="background:#f4f0fe;">
-          <th style="padding:11px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7c5cf6;text-align:left">Client</th>
-          <th style="padding:11px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7c5cf6;text-align:left">Project</th>
-          <th style="padding:11px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7c5cf6;text-align:right">Hours</th>
-          <th style="padding:11px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7c5cf6;text-align:right">Rounded</th>
-        </tr>
-      </thead>
-      <tbody>${tableRows}</tbody>
-      <tfoot>
-        <tr style="background:#f4f0fe;border-top:2px solid #7c5cf6;">
-          <td colspan="2" style="padding:11px 14px;font-size:13px;font-weight:700;color:#7c5cf6">Total</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:800;color:#7c5cf6;text-align:right">${total.toFixed(2)}h</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:800;color:#7c5cf6;text-align:right">${totalRounded.toFixed(2)}h</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-
-  <script>window.onload = () => { window.print() }</script>
-</body>
-</html>`
-
-  const win = window.open('', '_blank')
-  if (win) { win.document.write(html); win.document.close() }
-}
+const personName = (u: { firstName?: string; lastName?: string; email: string }) =>
+  [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -234,17 +72,31 @@ export default function ReportsPage() {
   const { token, user } = useAuthStore()
   const [tab, setTab] = useState('summary')
   const [rangeKey, setRangeKey] = useState<RangeKey>('mtd')
+  const [customFrom, setCustomFrom] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'))
+  const [customTo, setCustomTo] = useState(() => dayjs().format('YYYY-MM-DD'))
   const [clientId, setClientId] = useState<number | null>(null)
+  const [projectId, setProjectId] = useState<number | null>(null)
   const [memberId, setMemberId] = useState<number | null>(null)
+  const [billable, setBillable] = useState<BillableFilter>('all')
   const [cover, setCover] = useState<CoverFilter>('include')
+  const [page, setPage] = useState(0)
+  const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null)
 
-  const range = resolveRange(rangeKey)
-  const userName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || ''
+  const customValid = rangeKey !== 'custom' || (!!customFrom && !!customTo && customFrom <= customTo)
+  const range = resolveRange(rangeKey, customFrom, customTo)
+  const userName = user ? personName(user) : ''
   const canManage = isManagerial(user?.role)
 
   const { data: clientList } = useQuery({
     queryKey: ['clients', token],
     queryFn: () => clients.list(token!),
+    enabled: !!token,
+    staleTime: 5 * 60_000,
+  })
+
+  const { data: projectList } = useQuery({
+    queryKey: ['projects', token],
+    queryFn: () => projects.list(token!),
     enabled: !!token,
     staleTime: 5 * 60_000,
   })
@@ -256,22 +108,53 @@ export default function ReportsPage() {
     staleTime: 5 * 60_000,
   })
 
-  const selectedClient = clientList?.find(c => c.clientId === clientId) ?? null
-  const selectedMember = memberList?.find(u => u.userId === memberId) ?? null
-  const memberName = selectedMember ? [selectedMember.firstName, selectedMember.lastName].filter(Boolean).join(' ') || selectedMember.email : null
+  const clientNames = useMemo(() => new Map((clientList ?? []).map(c => [c.clientId, c.name])), [clientList])
+  const clientOptions = useMemo(
+    () => (clientList ?? []).map(c => ({ value: c.clientId, label: c.name, color: clientColor(c.clientId) })).sort((a, b) => a.label.localeCompare(b.label)),
+    [clientList])
+  const projectOptions = useMemo(
+    () => (projectList ?? [])
+      .filter(p => clientId === null || p.clientId === clientId)
+      .map(p => ({ value: p.projectId, label: p.name, hint: clientNames.get(p.clientId), color: clientColor(p.clientId) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [projectList, clientId, clientNames])
+  const memberOptions = useMemo(
+    () => (memberList ?? []).filter(u => u.isActive || u.userId === memberId).map(u => ({ value: u.userId, label: personName(u), hint: u.email })).sort((a, b) => a.label.localeCompare(b.label)),
+    [memberList, memberId])
+
+  const selectedClient = clientOptions.find(c => c.value === clientId)?.label
+  const selectedProject = projectOptions.find(p => p.value === projectId)?.label
+  const memberName = memberOptions.find(m => m.value === memberId)?.label ?? null
+  const billableLabel = billable === 'billable' ? 'billable only' : billable === 'non_billable' ? 'non-billable only' : null
   const coverLabel = cover === 'exclude' ? 'excl. holiday cover' : cover === 'only' ? 'holiday cover only' : null
-  const subtitle = [range.label, selectedClient?.name, memberName, coverLabel].filter(Boolean).join(' · ')
+  const subtitle = [range.label, selectedClient, selectedProject, memberName, billableLabel, coverLabel].filter(Boolean).join(' · ')
+
+  const params: ReportParams = {
+    from: range.from,
+    to: range.to,
+    ...(clientId ? { clientId } : {}),
+    ...(projectId ? { projectId } : {}),
+    ...(memberId ? { userId: memberId } : {}),
+    ...(billable !== 'all' ? { billable: billable === 'billable' } : {}),
+    cover,
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }
+  const filterKey = [range.from, range.to, clientId, projectId, memberId, billable, cover]
+
+  // Any filter change goes back to page 1 of the itemised list
+  const resetting = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(0) }
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['reports-summary', token, rangeKey, clientId, memberId, cover],
-    queryFn: () => reports.summary(token!, {
-      from: range.from,
-      to: range.to,
-      ...(clientId ? { clientId } : {}),
-      ...(memberId ? { userId: memberId } : {}),
-      cover,
-    }),
-    enabled: !!token,
+    queryKey: ['reports-summary', token, ...filterKey],
+    queryFn: () => reports.summary(token!, params),
+    enabled: !!token && customValid,
+  })
+
+  const { data: detailed, isLoading: detailedLoading } = useQuery({
+    queryKey: ['reports-detailed', token, ...filterKey, page],
+    queryFn: () => reports.detailed(token!, { ...params, page, size: PAGE_SIZE }),
+    enabled: !!token && customValid && tab === 'detailed',
+    placeholderData: prev => prev,
   })
 
   const { data: retainerReport, isLoading: retainerLoading } = useQuery({
@@ -281,10 +164,32 @@ export default function ReportsPage() {
   })
 
   const rows = summary?.rows ?? []
+  const totalRounded = rows.reduce((s, r) => s + r.roundedTotalHours, 0)
+  const totalBillable = rows.reduce((s, r) => s + r.billableRoundedTotalHours, 0)
+  const pages = Math.max(1, Math.ceil((detailed?.total ?? 0) / PAGE_SIZE))
+  const label = subtitle.replace(/ · /g, ' - ')
+
+  async function runExport(kind: 'csv' | 'pdf') {
+    if (!token) return
+    // Open the print window before awaiting, so popup blockers still see the click
+    const win = kind === 'pdf' ? window.open('', '_blank') : null
+    win?.document.write('<p style="font-family:sans-serif;padding:24px;color:#666">Preparing report…</p>')
+    setExporting(kind)
+    try {
+      const all = await reports.detailed(token, { ...params, page: 0, size: EXPORT_SIZE })
+      if (kind === 'csv') exportEntriesCsv(all.entries, label)
+      else if (win) exportReportPdf(win, { label: range.label, subtitle: [memberName ?? userName, ...subtitle.split(' · ').slice(1)].join(' · '), rows, entries: all.entries, chart: summary?.chart })
+    } catch (err) {
+      win?.close()
+      throw err
+    } finally {
+      setExporting(null)
+    }
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{canManage ? 'Reports' : 'My Time'}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
@@ -292,33 +197,37 @@ export default function ReportsPage() {
         {rows.length > 0 && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => exportCsv(rows, subtitle.replace(/ · /g, ' - '))}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10 transition-all"
+              onClick={() => runExport('csv')}
+              disabled={exporting !== null}
+              title="Every entry in the current filters, one row each"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10 transition-all disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              CSV
+              {exporting === 'csv' ? 'Exporting…' : 'CSV'}
             </button>
             <button
-              onClick={() => exportPdf(rows, subtitle.replace(/ · /g, ' - '), memberName ?? userName)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-all shadow-sm shadow-primary/30"
+              onClick={() => runExport('pdf')}
+              disabled={exporting !== null}
+              title="Chart, summary and every entry in the current filters"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-all shadow-sm shadow-primary/30 disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              PDF
+              {exporting === 'pdf' ? 'Preparing…' : 'PDF'}
             </button>
           </div>
         )}
       </div>
 
-      {/* Date range pills */}
-      <div className="flex flex-wrap gap-2 mb-3">
+      {/* Date range */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         {RANGES.map((r) => (
           <button
             key={r.key}
-            onClick={() => setRangeKey(r.key)}
+            onClick={() => resetting(setRangeKey)(r.key)}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
               rangeKey === r.key
                 ? 'bg-primary text-white border-primary shadow-sm shadow-primary/30'
@@ -328,37 +237,64 @@ export default function ReportsPage() {
             {r.label}
           </button>
         ))}
+        <button
+          onClick={() => {
+            // Start the custom range from whatever preset is showing
+            if (rangeKey !== 'custom') {
+              setCustomFrom(dayjs(range.from).format('YYYY-MM-DD'))
+              setCustomTo(dayjs(range.to).format('YYYY-MM-DD'))
+            }
+            resetting(setRangeKey)('custom')
+          }}
+          className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+            rangeKey === 'custom'
+              ? 'bg-primary text-white border-primary shadow-sm shadow-primary/30'
+              : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+          }`}
+        >
+          Custom…
+        </button>
+        {rangeKey === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input type="date" aria-label="From" value={customFrom} max={customTo || undefined}
+              onChange={e => resetting(setCustomFrom)(e.target.value)} className={DATE_CLASS} />
+            <span className="text-muted-foreground text-sm">to</span>
+            <input type="date" aria-label="To" value={customTo} min={customFrom || undefined}
+              onChange={e => resetting(setCustomTo)(e.target.value)} className={DATE_CLASS} />
+            {!customValid && <span className="text-xs text-destructive">Pick a start on or before the end</span>}
+          </div>
+        )}
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-8">
-        {clientList && clientList.length > 0 && (
-          <select
-            value={clientId ?? ''}
-            onChange={e => setClientId(e.target.value ? Number(e.target.value) : null)}
-            className={SELECT_CLASS}
-          >
-            <option value="">All clients</option>
-            {clientList.map(c => (
-              <option key={c.clientId} value={c.clientId}>{c.name}</option>
-            ))}
-          </select>
+        {clientOptions.length > 0 && (
+          <SearchSelect
+            options={clientOptions}
+            value={clientId}
+            onChange={v => {
+              resetting(setClientId)(v)
+              // Drop a project that belongs to another client
+              if (v !== null && projectId !== null && projectList?.find(p => p.projectId === projectId)?.clientId !== v) setProjectId(null)
+            }}
+            allLabel="All clients"
+            placeholder="Search clients…"
+          />
         )}
-        {canManage && memberList && memberList.length > 0 && (
-          <select
-            value={memberId ?? ''}
-            onChange={e => setMemberId(e.target.value ? Number(e.target.value) : null)}
-            className={SELECT_CLASS}
-          >
-            <option value="">Everyone</option>
-            {memberList.map(u => (
-              <option key={u.userId} value={u.userId}>{[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}</option>
-            ))}
-          </select>
+        {projectOptions.length > 0 && (
+          <SearchSelect options={projectOptions} value={projectId} onChange={resetting(setProjectId)} allLabel="All projects" placeholder="Search projects…" />
         )}
+        {canManage && memberOptions.length > 0 && (
+          <SearchSelect options={memberOptions} value={memberId} onChange={resetting(setMemberId)} allLabel="Everyone" placeholder="Search people…" />
+        )}
+        <select value={billable} onChange={e => resetting(setBillable)(e.target.value as BillableFilter)} className={SELECT_CLASS}>
+          <option value="all">Billable &amp; non-billable</option>
+          <option value="billable">Billable only</option>
+          <option value="non_billable">Non-billable only</option>
+        </select>
         <select
           value={cover}
-          onChange={e => setCover(e.target.value as CoverFilter)}
+          onChange={e => resetting(setCover)(e.target.value as CoverFilter)}
           className={SELECT_CLASS}
           title="Holiday cover time is logged while covering a client for someone else"
         >
@@ -371,6 +307,7 @@ export default function ReportsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="detailed">Detailed</TabsTrigger>
           {canManage && <TabsTrigger value="retainers">Retainers</TabsTrigger>}
         </TabsList>
 
@@ -378,38 +315,121 @@ export default function ReportsPage() {
           {summaryLoading ? (
             <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>
           ) : (
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead className="text-right">Hours</TableHead>
-                    <TableHead className="text-right">Rounded</TableHead>
-                    <TableHead className="text-right">Holiday cover</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.length === 0 && (
+            <div className="space-y-6">
+              {summary?.chart && summary.chart.buckets.length > 0 && (
+                <div className="rounded-xl border border-border bg-card shadow-sm p-5">
+                  <div className="flex flex-wrap gap-x-8 gap-y-2 mb-4">
+                    <div><p className="text-xs text-muted-foreground">Total</p><p className="num text-xl font-semibold">{fh(totalRounded)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Billable</p><p className="num text-xl font-semibold text-teal">{fh(totalBillable)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Non-billable</p><p className="num text-xl font-semibold text-sky">{fh(Math.max(0, totalRounded - totalBillable))}</p></div>
+                  </div>
+                  <HoursChart buckets={summary.chart.buckets} granularity={summary.chart.granularity} />
+                </div>
+              )}
+              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        No entries for this period
-                      </TableCell>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Project</TableHead>
+                      <TableHead className="text-right">Hours</TableHead>
+                      <TableHead className="text-right">Rounded</TableHead>
+                      <TableHead className="text-right">Billable</TableHead>
+                      <TableHead className="text-right">Holiday cover</TableHead>
                     </TableRow>
-                  )}
-                  {rows.map((row) => (
-                    <TableRow key={`${row.clientId}-${row.projectId}`}>
-                      <TableCell className="font-medium">{row.clientName}</TableCell>
-                      <TableCell className="text-muted-foreground">{row.projectName}</TableCell>
-                      <TableCell className="text-right font-mono">{fh(row.totalHours)}</TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">{fh(row.roundedTotalHours)}</TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        {row.coverRoundedTotalHours > 0 ? <span className="text-amber-400">{fh(row.coverRoundedTotalHours)}</span> : '—'}
-                      </TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          No entries for this period
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {rows.map((row) => (
+                      <TableRow key={`${row.clientId}-${row.projectId}`}>
+                        <TableCell className="font-medium">
+                          <span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: clientColor(row.clientId) }} />{row.clientName}</span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{row.projectName}</TableCell>
+                        <TableCell className="text-right num">{fh(row.totalHours)}</TableCell>
+                        <TableCell className="text-right num text-muted-foreground">{fh(row.roundedTotalHours)}</TableCell>
+                        <TableCell className="text-right num text-muted-foreground">{fh(row.billableRoundedTotalHours)}</TableCell>
+                        <TableCell className="text-right num text-muted-foreground">
+                          {row.coverRoundedTotalHours > 0 ? <span className="text-amber-400">{fh(row.coverRoundedTotalHours)}</span> : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="detailed">
+          {detailedLoading && !detailed ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      {canManage && <TableHead>Member</TableHead>}
+                      <TableHead>Client / project</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Rounded</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(detailed?.entries ?? []).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={canManage ? 6 : 5} className="text-center text-muted-foreground py-8">No entries for this period</TableCell>
+                      </TableRow>
+                    )}
+                    {(detailed?.entries ?? []).map(e => (
+                      <TableRow key={e.entryId}>
+                        <TableCell className="whitespace-nowrap">
+                          <p className="font-medium">{dayjs(e.startedAt).format('ddd D MMM')}</p>
+                          <p className="num text-xs text-muted-foreground">{dayjs(e.startedAt).format('HH:mm')}–{e.endedAt ? dayjs(e.endedAt).format('HH:mm') : 'now'}</p>
+                        </TableCell>
+                        {canManage && <TableCell className="whitespace-nowrap">{e.userName}</TableCell>}
+                        <TableCell>
+                          <p className="inline-flex items-center gap-2 font-medium">
+                            {e.clientId != null && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: clientColor(e.clientId) }} />}
+                            {e.clientName ?? '—'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{e.projectName ?? 'No project'}</p>
+                        </TableCell>
+                        <TableCell className="max-w-72 whitespace-normal text-muted-foreground">{e.description || '—'}</TableCell>
+                        <TableCell className="text-right num">{e.isRunning ? 'running' : fh((e.roundedDurationSeconds ?? 0) / 3600)}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right">
+                          <span className="inline-flex gap-1">
+                            {e.isBillable
+                              ? <Badge variant="secondary" className="text-teal">Billable</Badge>
+                              : <Badge variant="secondary" className="text-sky">Non-billable</Badge>}
+                            {e.isCover && <Badge variant="secondary" className="text-amber-400">Cover</Badge>}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {(detailed?.total ?? 0) > PAGE_SIZE && (
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span className="num">{page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, detailed!.total)} of {detailed!.total}</span>
+                  <div className="flex gap-2">
+                    <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+                      className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-40">Previous</button>
+                    <button disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}
+                      className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 disabled:opacity-40">Next</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>

@@ -165,10 +165,59 @@ export interface SummaryRow {
   roundedTotalHours: number
   coverRoundedTotalSeconds: number
   coverRoundedTotalHours: number
+  billableRoundedTotalSeconds: number
+  billableRoundedTotalHours: number
+}
+
+export type ChartGranularity = 'day' | 'week' | 'month'
+
+/** One bar of the billable vs non-billable chart; start is the bucket's first local date (YYYY-MM-DD). */
+export interface ChartBucket {
+  start: string
+  billableHours: number
+  nonBillableHours: number
 }
 
 export interface SummaryReportResponse {
   rows: SummaryRow[]
+  chart?: { granularity: ChartGranularity; buckets: ChartBucket[] }
+}
+
+/** One entry of the itemised report */
+export interface DetailedEntryRow {
+  entryId: number
+  userId: number
+  userName: string
+  clientId?: number | null
+  clientName?: string | null
+  projectId?: number | null
+  projectName?: string | null
+  description: string
+  startedAt: string
+  endedAt?: string | null
+  durationSeconds?: number | null
+  roundedDurationSeconds?: number | null
+  isBillable: boolean
+  isRunning: boolean
+  isCover: boolean
+}
+
+export interface DetailedReportResponse {
+  entries: DetailedEntryRow[]
+  total: number
+}
+
+/** Filters shared by the summary, detailed and export reports */
+export type ReportParams = {
+  from?: string
+  to?: string
+  clientId?: number
+  projectId?: number
+  userId?: number
+  billable?: boolean
+  cover?: CoverFilter
+  /** IANA zone used to bucket the chart by local day */
+  tz?: string
 }
 
 export interface RetainerStatusRow {

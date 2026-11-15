@@ -83,7 +83,7 @@ export function AdminDashboard() {
           <p className="text-3xl font-semibold font-mono text-destructive">
             {(retainerReport?.rows ?? []).filter((r) => r.isOver).length}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">of {(retainerReport?.rows ?? []).filter((r) => r.retainerHours).length} retainer clients</p>
+          <p className="text-xs text-muted-foreground mt-1">of {(retainerReport?.rows ?? []).filter((r) => r.retainerHours).length} retainers</p>
         </div>
       </div>
 
@@ -119,10 +119,10 @@ export function AdminDashboard() {
             {retainerReport!.rows.filter((r) => r.retainerHours).map((row) => {
               const used = row.percentUsed !== undefined ? Math.round(row.percentUsed) : 0
               return (
-                <div key={row.clientId} className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-center gap-4">
+                <div key={`${row.clientId}-${row.projectId ?? 0}`} className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <p className="text-sm font-medium">{row.clientName}</p>
+                      <p className="text-sm font-medium">{row.clientName}{row.projectName && <span className="text-muted-foreground"> · {row.projectName}</span>}</p>
                       <Badge variant={row.isOver ? 'destructive' : used > 80 ? 'outline' : 'secondary'} className="text-xs">
                         {row.isOver ? 'Over' : used > 80 ? 'Near limit' : 'On track'}
                       </Badge>

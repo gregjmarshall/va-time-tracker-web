@@ -426,11 +426,11 @@ export default function ReportsPage() {
                 {(retainerReport?.rows ?? []).map((row) => {
                   const used = Math.round(row.percentUsed ?? 0)
                   return (
-                    <Card key={row.clientId} className="shadow-sm">
+                    <Card key={`${row.clientId}-${row.projectId ?? 0}`} className="shadow-sm">
                       <CardContent className="pt-5 pb-5">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <p className="font-semibold text-foreground">{row.clientName}</p>
+                            <p className="font-semibold text-foreground">{row.clientName}{row.projectName && <span className="text-muted-foreground font-medium"> · {row.projectName}</span>}</p>
                             <p className="text-sm text-muted-foreground mt-0.5">
                               {fh(row.actualHours)} used{row.retainerHours ? ` of ${fh(row.retainerHours)}` : ''}
                             </p>

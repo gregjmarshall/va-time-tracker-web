@@ -271,6 +271,13 @@ export interface UserResponse {
   fullVisibility: boolean
   emailVerified: boolean
   createdAt: string
+  /** When they last started tracking time; absent if never */
+  lastTrackedAt?: string | null
+}
+
+export interface MemberAccess {
+  projectIds: number[]
+  clientIds: number[]
 }
 
 export interface ClientActivityRunningEntry {

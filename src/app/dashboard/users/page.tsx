@@ -27,7 +27,7 @@ function lastTrackedLabel(u: UserResponse) {
 
 function MemberCell({ u }: { u: UserResponse }) {
   return (
-    <Link href={`/dashboard/users/${u.userId}`} className="flex items-center gap-3 min-w-0 max-w-44 md:max-w-none group">
+    <Link href={`/dashboard/users/${u.userId}`} className="flex items-center gap-3 min-w-0 max-w-36 md:max-w-none group">
       <Avatar className="h-8 w-8 shrink-0">
         <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{memberInitials(u)}</AvatarFallback>
       </Avatar>

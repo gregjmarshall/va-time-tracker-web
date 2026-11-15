@@ -13,14 +13,19 @@ export interface RetainerBurn {
   daysLeft: number
 }
 
-const isWorkingDay = (d: Dayjs) => d.day() !== 0 && d.day() !== 6
+/** Bank holiday dates as 'YYYY-MM-DD'. */
+export type HolidaySet = ReadonlySet<string>
+const NO_HOLIDAYS: HolidaySet = new Set()
 
-/** Mon–Fri days of [today]'s month, split into before today and today onwards. Bank holidays aren't excluded. */
-export function workingDays(today: Dayjs = dayjs()) {
+const isWorkingDay = (d: Dayjs, holidays: HolidaySet) =>
+  d.day() !== 0 && d.day() !== 6 && !holidays.has(d.format('YYYY-MM-DD'))
+
+/** Mon–Fri days of [today]'s month that aren't bank holidays, split into before today and today onwards. */
+export function workingDays(today: Dayjs = dayjs(), holidays: HolidaySet = NO_HOLIDAYS) {
   const start = today.startOf('month')
   let before = 0, fromToday = 0
   for (let d = start; d.month() === start.month(); d = d.add(1, 'day')) {
-    if (!isWorkingDay(d)) continue
+    if (!isWorkingDay(d, holidays)) continue
     if (d.isBefore(today, 'day')) before++
     else fromToday++
   }
@@ -37,8 +42,13 @@ const MIN_DAYS = 2
  * How a monthly retainer is being used so far. Compares actual hours with an even spread over the month's
  * working days up to yesterday, and works out the daily hours still needed.
  */
-export function retainerBurn(allowance: number, actual: number, today: Dayjs = dayjs()): RetainerBurn {
-  const { before, fromToday, total } = workingDays(today)
+export function retainerBurn(
+  allowance: number,
+  actual: number,
+  holidays: HolidaySet = NO_HOLIDAYS,
+  today: Dayjs = dayjs(),
+): RetainerBurn {
+  const { before, fromToday, total } = workingDays(today, holidays)
   const neededPerDay = fromToday > 0 ? Math.max(0, allowance - actual) / fromToday : 0
   if (actual > allowance) return { status: 'over', pace: null, neededPerDay: 0, daysLeft: fromToday }
   if (before < MIN_DAYS || allowance <= 0) return { status: 'early', pace: null, neededPerDay, daysLeft: fromToday }

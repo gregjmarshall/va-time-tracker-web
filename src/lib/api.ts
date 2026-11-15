@@ -207,6 +207,20 @@ export const reports = {
     req<string>('GET', '/api/reports/export/spreadsheet', { token, query: year ? { year } : {} }),
 }
 
+// Calendar
+export type BankHolidayRegion = 'england-and-wales' | 'scotland' | 'northern-ireland'
+export interface BankHolidaysResponse {
+  region: BankHolidayRegion
+  /** 'gov.uk' live feed (cached daily) or 'fallback' bundled list */
+  source: 'gov.uk' | 'fallback'
+  holidays: { date: string; title: string }[]
+}
+export const calendar = {
+  /** UK bank holidays for a region (default England & Wales) */
+  bankHolidays: (region: BankHolidayRegion = 'england-and-wales') =>
+    req<BankHolidaysResponse>('GET', '/api/calendar/bank-holidays', { query: { region } }),
+}
+
 // Retainers
 export const retainers = {
   /** History, newest first (Managers and Admins) */

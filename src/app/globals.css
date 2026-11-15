@@ -34,6 +34,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-coral: var(--brand-coral);
+  --color-teal: var(--brand-teal);
+  --color-sun: var(--brand-amber);
+  --color-sky: var(--brand-sky);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -62,6 +66,12 @@
   --input: #30356c;
   --ring: #7c5cf6;
   --radius: 1.25rem;
+
+  /* Accents that contrast with the violet brand (also in src/lib/colors.ts) */
+  --brand-coral: #ff7a59;
+  --brand-teal: #2dd4bf;
+  --brand-amber: #fbbf24;
+  --brand-sky: #60a5fa;
 
   /* Sidebar — deep vibrant purple */
   --sidebar: #7c5cf6;

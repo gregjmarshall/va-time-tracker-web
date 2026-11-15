@@ -9,6 +9,7 @@ import { timeEntries } from '@/lib/api'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { roleLabel } from '@/lib/types'
+import { PipMark, PipWordmark } from '@/components/brand/PipLogo'
 
 const workerNav = [
   {
@@ -116,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)' }}
                   viewBox="0 0 54 54">
                   <circle cx="27" cy="27" r="24" fill="none"
-                    stroke="#4ade80" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
+                    stroke="#2dd4bf" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
                     style={{
                       transformOrigin: '27px 27px',
                       transform: 'rotate(-90deg)',
@@ -125,26 +126,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   />
                 </svg>
               )}
-              <div className={cn(
-                'w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center shadow-lg shadow-black/20 transition-all',
-                isTimerRunning
-                  ? 'bg-white/20 border-white/30'
-                  : 'bg-white/10 border-white/10'
-              )}>
-                {isTimerRunning ? (
-                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="5" y="4" width="4" height="16" rx="1.5" />
-                    <rect x="15" y="4" width="4" height="16" rx="1.5" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
+              <PipMark size={40} className={cn('shadow-lg shadow-black/30 rounded-[9px] transition-transform', isTimerRunning && 'scale-95')} />
             </div>
-            <span className="font-bold text-white text-base tracking-tight">pip</span>
+            <PipWordmark height={24} className="text-white" />
           </div>
         </div>
 
@@ -165,7 +149,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               >
                 {active && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#7c5cf6]" />
+                  <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-coral" />
                 )}
                 <div className={cn(
                   "transition-colors",

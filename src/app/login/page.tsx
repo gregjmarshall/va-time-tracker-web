@@ -1,5 +1,6 @@
 'use client'
 
+import { PipMark, PipWordmark } from '@/components/brand/PipLogo'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -57,13 +58,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm relative">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/15 border border-primary/25 mb-4 shadow-lg shadow-primary/10">
-            <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <div className="flex flex-col items-center gap-3 mb-3">
+            <PipMark size={56} className="shadow-xl shadow-primary/30 rounded-[16px]" />
+            <PipWordmark height={30} className="text-foreground" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">pip</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Sign in to your workspace
           </p>

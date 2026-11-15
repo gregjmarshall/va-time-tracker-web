@@ -6,6 +6,9 @@ import type {
   ClientManagersResponse,
   ClientResponse,
   ClientWithRetainerResponse,
+  ClientBillingResponse,
+  PaymentMethod,
+  RateType,
   CoverFilter,
   HolidayCoverResponse,
   PagedTimeEntryResponse,
@@ -89,12 +92,20 @@ export const clients = {
   list: (token: string) => req<ClientResponse[]>('GET', '/api/clients', { token }),
   get: (token: string, clientId: number) =>
     req<ClientWithRetainerResponse>('GET', `/api/clients/${clientId}`, { token }),
-  create: (token: string, body: { name: string; contactEmail?: string }) =>
+  create: (token: string, body: { name: string; contactEmail?: string; clientSince?: string }) =>
     req<ClientResponse>('POST', '/api/clients', { token, body }),
-  update: (token: string, clientId: number, body: { name?: string; contactEmail?: string; isActive?: boolean }) =>
+  update: (token: string, clientId: number, body: { name?: string; contactEmail?: string; isActive?: boolean; clientSince?: string }) =>
     req<ClientResponse>('PUT', `/api/clients/${clientId}`, { token, body }),
   deactivate: (token: string, clientId: number) =>
     req<void>('DELETE', `/api/clients/${clientId}`, { token }),
+}
+
+// Client rate and payment method (Admins only)
+export const clientBilling = {
+  list: (token: string) => req<ClientBillingResponse[]>('GET', '/api/client-billing', { token }),
+  /** Replaces all fields; omit one to clear it */
+  update: (token: string, clientId: number, body: { rateType?: RateType; rateAmount?: number; paymentMethod?: PaymentMethod }) =>
+    req<ClientBillingResponse>('PUT', `/api/client-billing/${clientId}`, { token, body }),
 }
 
 // Projects

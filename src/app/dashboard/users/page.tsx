@@ -36,7 +36,8 @@ function MemberCell({ u }: { u: UserResponse }) {
           {memberName(u)}
           {!u.isActive && <Badge variant="outline" className="ml-2 text-[10px] align-middle">Deactivated</Badge>}
         </p>
-        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+        {memberName(u) !== u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
+        <p className="text-xs text-muted-foreground md:hidden">Last tracked {lastTrackedLabel(u).toLowerCase()}</p>
       </div>
     </Link>
   )
@@ -168,7 +169,7 @@ export default function UsersPage() {
           <thead className="border-b border-white/5">
             <tr>
               <th className={TH}>Team member</th>
-              <th className={TH}>Last tracked</th>
+              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
               <th className={TH}>Visibility</th>
               <th className={TH} />
             </tr>
@@ -187,7 +188,7 @@ export default function UsersPage() {
             {members.map((u) => (
               <tr key={u.userId} className={`border-b border-white/5 last:border-0 ${u.isActive ? '' : 'opacity-60'}`}>
                 <td className={TD}><MemberCell u={u} /></td>
-                <td className={`${TD} text-muted-foreground whitespace-nowrap`}>{lastTrackedLabel(u)}</td>
+                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden md:table-cell`}>{lastTrackedLabel(u)}</td>
                 <td className={TD}>
                   <button
                     onClick={() => visibility.mutate(u)}
@@ -217,7 +218,7 @@ export default function UsersPage() {
             <tr>
               <th className={TH}>Name</th>
               <th className={TH}>Role</th>
-              <th className={TH}>Last tracked</th>
+              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
               <th className={TH} />
             </tr>
           </thead>
@@ -229,7 +230,7 @@ export default function UsersPage() {
               <tr key={u.userId} className={`border-b border-white/5 last:border-0 ${u.isActive ? '' : 'opacity-60'}`}>
                 <td className={TD}><MemberCell u={u} /></td>
                 <td className={TD}><Badge variant="secondary" className="text-xs">{roleLabel(u.role)}</Badge></td>
-                <td className={`${TD} text-muted-foreground whitespace-nowrap`}>{lastTrackedLabel(u)}</td>
+                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden md:table-cell`}>{lastTrackedLabel(u)}</td>
                 <td className={TD}><RowActions u={u} onEdit={() => setEditing(u)} /></td>
               </tr>
             ))}

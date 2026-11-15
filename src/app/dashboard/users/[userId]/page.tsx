@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { HoursChart } from '@/components/reports/HoursChart'
+import { HistoryList } from '@/components/audit/HistoryList'
 import { AccessDialog } from '@/components/team/AccessDialog'
 import { EditMemberDialog, useToggleActive } from '@/components/team/MemberDialogs'
 import { canManage, memberInitials, memberName } from '@/components/team/member'
@@ -97,6 +98,12 @@ export default function MemberPage() {
     queryKey: ['clients', token],
     queryFn: () => clientsApi.list(token!),
     enabled: !!token && allowed && isTeamMember,
+  })
+
+  const { data: history, isLoading: historyLoading } = useQuery({
+    queryKey: ['member-history', token, userId],
+    queryFn: () => users.history(token!, userId),
+    enabled: !!token && allowed && !!member,
   })
 
   if (!allowed) {
@@ -278,6 +285,11 @@ export default function MemberPage() {
             </ul>
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl glass-card p-5">
+        <h2 className="text-sm font-semibold mb-4">History</h2>
+        <HistoryList events={history} isLoading={historyLoading} empty="No changes recorded yet. Role, access and status changes from now on will show here." />
       </div>
 
       {dialog === 'access' && <AccessDialog member={member} onClose={() => setDialog(null)} />}

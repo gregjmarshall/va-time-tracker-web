@@ -16,6 +16,7 @@ const TIME_DERIVED_ROOTS = new Set([
   'reports-summary',
   'reports-summary-week',
   'reports-overview',
+  'projects-overview',
   'reports-summary-alltime',
   'reports-retainer',
   'clients-with-retainer',

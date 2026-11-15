@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { roleLabel } from '@/lib/types'
 import { PipMark, PipWordmark } from '@/components/brand/PipLogo'
+import { GlobalTimer } from '@/components/timer/GlobalTimer'
 
 const workerNav = [
   {
@@ -186,10 +187,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto bg-background">
-        {children}
-      </main>
+      {/* Main: timer bar on every page, content scrolls beneath it */}
+      <div className="flex-1 min-w-0 flex flex-col bg-background">
+        <header className="relative z-30 flex-shrink-0 border-b border-white/5 bg-background/80 backdrop-blur-md px-6 py-3">
+          <GlobalTimer />
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

@@ -17,60 +17,6 @@ function formatElapsed(s: number) {
   return [h, m, sec].map((n) => String(n).padStart(2, '0')).join(':')
 }
 
-const AFFIRMATIONS = [
-  "You're doing great — keep it up! 🌟",
-  "Every minute counts. You've got this! 💪",
-  "Focused and productive — that's you! 🎯",
-  "Amazing work happening right now! ✨",
-  "You're making real progress today! 🚀",
-  "Deep work is powerful work. Keep going! 🧠",
-  "Your effort is paying off, one second at a time! ⏱️",
-  "Look at you, getting things done! 🙌",
-  "Consistency is a superpower — and you have it! ⚡",
-  "Every task you finish is a win! 🏆",
-  "You showed up and that already matters! 🌈",
-  "In the zone! This is where magic happens! 🪄",
-  "Small steps, big results. Keep moving! 👟",
-  "Your clients are lucky to have you! 💼",
-  "Flow state unlocked! Don't stop now! 🔓",
-  "You're building something great! 🏗️",
-  "Today's effort is tomorrow's success! 🌅",
-  "Crushing it, one minute at a time! 🔥",
-  "You're the kind of professional people rely on! 🤝",
-  "Hard work like this doesn't go unnoticed! 👀",
-  "You make it look easy — but we know the effort! 😎",
-  "Stay with it — the best work comes from persistence! 🌱",
-  "Time well spent is time well lived! ☀️",
-  "You're investing in your best work right now! 💡",
-  "Momentum is building — feel it! 🏄",
-  "Great things are assembled minute by minute! 🔧",
-  "The world works better because you work hard! 🌍",
-  "Your dedication is truly inspiring! 🌻",
-  "One focused hour beats ten distracted ones! 🎧",
-  "You're on a roll — don't break the streak! 🎲",
-  "Excellence is a habit, and you're proving it! 📈",
-  "Another block of quality time — nice work! 🧱",
-  "Whatever you're building, it matters! 💎",
-  "You bring real value to every project! 💫",
-  "The timer is running, and so are you! 🏃",
-  "Proud of you for showing up and doing the work! 🫶",
-  "Dialled in and delivering — that's the energy! ⚙️",
-  "Your focus right now is a gift to your future self! 🎁",
-  "Every tracked minute tells a story of effort! 📖",
-  "You're not just working — you're making an impact! 🌊",
-  "Solid, reliable, excellent. That's you! 🪨",
-  "The best professionals track their time — and here you are! 📊",
-  "Keep that momentum going — you're unstoppable! 🚂",
-  "Real growth happens in moments exactly like this! 🌿",
-  "You're turning time into results. That's powerful! ⚡",
-  "Your work ethic is something to be proud of! 🦁",
-  "Another session, another step forward! 👣",
-  "You make the work look purposeful — because it is! 🎨",
-  "Stay curious, stay focused, keep creating! 🔭",
-  "Quiet effort, loud results. That's your style! 🎶",
-  "You're writing the story of a productive day! 📝",
-  "Tick tock — and you're making every second count! ⌚",
-]
 
 // ── Pause session persistence ─────────────────────────────────────────────────
 
@@ -94,7 +40,7 @@ function clearPause() {
   try { localStorage.removeItem(PAUSE_KEY) } catch { /* */ }
 }
 
-// ── Main TimerBar ─────────────────────────────────────────────────────────────
+// ── TimerBar: slim timer row shown at the top of every page ─────────────────────────────────────────────────────────────
 
 interface Props {
   activeEntry: TimeEntryResponse | null
@@ -146,7 +92,6 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false)
   const descriptionRequired = useDescriptionRequired()
   const descriptionRef = useRef<HTMLInputElement>(null)
-  const [affirmationIdx, setAffirmationIdx] = useState(() => Math.floor(Math.random() * AFFIRMATIONS.length))
 
   // Sync local state when a new active entry arrives (e.g. page reload with running timer)
   useEffect(() => {
@@ -196,9 +141,6 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
       clearSessionMutation.mutate()
       queryClient.invalidateQueries({ queryKey: ['active-timer'] })
       onChanged()
-      if (accumulatedRef.current === 0) {
-        setAffirmationIdx(Math.floor(Math.random() * AFFIRMATIONS.length))
-      }
       setTimerState('running')
       toast.success(accumulatedRef.current > 0 ? 'Resumed' : 'Timer started')
     },
@@ -354,129 +296,9 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   const isBusy = startMutation.isPending || pauseMutation.isPending || finalStopMutation.isPending || discardMutation.isPending
 
   const displayProjectId = selectedProjectId ?? activeEntry?.projectId ?? null
-  const displayProject = displayProjectId ? projectList.find((p) => p.projectId === displayProjectId) ?? null : null
-  const displayClient = displayProject ? clientList.find((c) => c.clientId === displayProject.clientId) ?? null : null
 
-  return (
-    <div className="rounded-[32px] glass-card p-8 shadow-xl">
-
-      {/* Description — always visible */}
-      <div className="mb-4">
-        <DescriptionInput
-          ref={descriptionRef}
-          required={descriptionRequired}
-          className="h-12 bg-white/5 border-white/10 focus:border-primary/40 rounded-2xl px-5 text-[14px] placeholder:text-muted-foreground/40"
-          value={description}
-          onChange={setDescription}
-          onBlur={handleDescriptionBlur}
-        />
-      </div>
-
-      {/* Project picker — always enabled */}
-      <div className="mb-8">
-        <ProjectPicker
-          clientList={clientList}
-          projectList={projectList}
-          selectedProjectId={displayProjectId}
-          onSelect={handleProjectChange}
-          placeholder="Select project"
-        />
-      </div>
-
-      {/* Controls row */}
-      <div className="flex items-center justify-center gap-10">
-
-        {/* Play / Pause button */}
-        <div className="relative flex-shrink-0">
-          {isRunning && (
-            <svg className="absolute pointer-events-none"
-              style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)' }}
-              viewBox="0 0 86 86">
-              <circle cx="43" cy="43" r="40" fill="none"
-                stroke="#4ade80" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
-                style={{
-                  transformOrigin: '43px 43px',
-                  transform: 'rotate(-90deg)',
-                  animation: 'timer-march 1.2s linear infinite, timer-glow 2s ease-in-out infinite',
-                }}
-              />
-            </svg>
-          )}
-          <button
-            onClick={handlePlayPause}
-            disabled={isBusy}
-            className="relative w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-            style={{
-              background: isActive
-                ? 'linear-gradient(135deg, #5a3ec8 0%, #7c5cf6 100%)'
-                : 'linear-gradient(135deg, #2e2670 0%, #4a32a8 100%)',
-              boxShadow: isRunning
-                ? '0 0 36px rgba(124,92,246,0.55), 0 6px 24px rgba(0,0,0,0.4)'
-                : '0 4px 20px rgba(0,0,0,0.35)',
-            }}
-          >
-            {isRunning ? (
-              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="4" width="4" height="16" rx="1.5" />
-                <rect x="14" y="4" width="4" height="16" rx="1.5" />
-              </svg>
-            ) : (
-              <svg className="w-7 h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {/* Elapsed + context */}
-        {isActive && (
-          <div className="flex-1 min-w-0">
-            <span className="text-5xl font-mono font-bold text-white tabular-nums tracking-tighter block">
-              {formatElapsed(elapsed)}
-            </span>
-            {isPaused && (
-              <span className="text-[10px] font-black text-amber-400/80 uppercase tracking-[0.15em] mt-1 block">
-                Paused
-              </span>
-            )}
-            {displayClient && displayProject && (
-              <p className="text-xs text-muted-foreground/50 font-medium mt-1 truncate">
-                {displayClient.name} · {displayProject.name}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Stop button */}
-        {isActive && (
-          <button
-            onClick={handleStop}
-            disabled={isBusy}
-            className="w-[72px] h-[72px] rounded-full flex items-center justify-center border border-white/10 bg-white/5 text-rose-400 hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-300 transition-all active:scale-95 disabled:opacity-50 flex-shrink-0"
-          >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="4" y="4" width="16" height="16" rx="3" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {isActive && (
-        <div className="flex justify-center mt-4">
-          <button type="button" onClick={() => setShowDiscardDialog(true)} disabled={isBusy}
-            className="text-xs font-semibold text-muted-foreground/50 hover:text-rose-300 transition-colors disabled:opacity-50">
-            Discard timer
-          </button>
-        </div>
-      )}
-
-      {/* Affirmation */}
-      {isRunning && (
-        <p className="text-center text-sm text-primary/60 font-medium mt-6">
-          {AFFIRMATIONS[affirmationIdx]}
-        </p>
-      )}
-
+  const dialogs = (
+    <>
       {/* Force-project dialog */}
       <Dialog open={showStopDialog} onOpenChange={(v) => { if (!v) setShowStopDialog(false) }}>
         <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
@@ -516,6 +338,61 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           </div>
         </DialogContent>
       </Dialog>
+    </>
+  )
+
+  return (
+    <div className="flex items-center gap-3 w-full">
+      <div className="flex-1 min-w-24">
+        <DescriptionInput
+          ref={descriptionRef}
+          required={descriptionRequired}
+          className="h-10 bg-white/5 border-white/10 focus:border-primary/40 rounded-xl px-4 text-sm placeholder:text-muted-foreground/50"
+          value={description}
+          onChange={setDescription}
+          onBlur={handleDescriptionBlur}
+        />
+      </div>
+      <div className="w-32 lg:w-56 xl:w-72 flex-shrink-0 [&>div>button]:py-2 [&>div>button]:rounded-xl">
+        <ProjectPicker
+          clientList={clientList}
+          projectList={projectList}
+          selectedProjectId={displayProjectId}
+          onSelect={handleProjectChange}
+          placeholder="Select project"
+        />
+      </div>
+      <div className="w-20 flex-shrink-0 text-right">
+        <span className={`font-mono text-lg font-semibold tabular-nums ${isActive ? 'text-white' : 'text-muted-foreground/40'}`}>
+          {formatElapsed(elapsed)}
+        </span>
+        {isPaused && <span className="block text-[9px] font-black text-sun uppercase tracking-[0.15em] -mt-0.5">Paused</span>}
+      </div>
+      <button onClick={handlePlayPause} disabled={isBusy}
+        aria-label={isRunning ? 'Pause timer' : isPaused ? 'Resume timer' : 'Start timer'}
+        title={isRunning ? 'Pause' : isPaused ? 'Resume' : 'Start'}
+        className={`relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${
+          isRunning ? 'bg-primary shadow-[0_0_20px_rgba(124,92,246,0.55)] ring-2 ring-teal/70' : 'bg-primary hover:bg-primary/90'
+        }`}>
+        {isRunning ? (
+          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
+        ) : (
+          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        )}
+      </button>
+      {isActive && (
+        <>
+          <button onClick={handleStop} disabled={isBusy} aria-label="Stop and save" title="Stop and save"
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/10 bg-white/5 text-rose-400 hover:bg-rose-500/15 hover:text-rose-300 transition-all active:scale-95 disabled:opacity-50">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
+          </button>
+          <button onClick={() => setShowDiscardDialog(true)} disabled={isBusy} aria-label="Discard timer" title="Discard timer"
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-muted-foreground/50 hover:text-rose-300 hover:bg-white/5 transition-colors disabled:opacity-50">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        </>
+      )}
+      {dialogs}
     </div>
   )
 }

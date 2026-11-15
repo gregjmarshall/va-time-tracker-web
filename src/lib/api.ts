@@ -5,6 +5,7 @@ import type {
   ClientActivityResponse,
   ClientManagersResponse,
   ClientResponse,
+  MemberAccess,
   ClientWithRetainerResponse,
   ClientBillingResponse,
   PaymentMethod,
@@ -233,7 +234,15 @@ export const billingRates = {
 
 // Users
 export const users = {
-  list: (token: string) => req<UserResponse[]>('GET', '/api/users', { token }),
+  /** Active accounts; includeInactive adds deactivated ones (Team page) */
+  list: (token: string, opts: { includeInactive?: boolean } = {}) =>
+    req<UserResponse[]>('GET', '/api/users', { token, query: opts.includeInactive ? { includeInactive: true } : undefined }),
+  /** Projects the member is assigned to and clients they can see */
+  access: (token: string, userId: number) =>
+    req<MemberAccess>('GET', `/api/users/${userId}/access`, { token }),
+  /** Replaces the member's assignments and client visibility with exactly these ids */
+  setAccess: (token: string, userId: number, body: MemberAccess) =>
+    req<MemberAccess>('PUT', `/api/users/${userId}/access`, { token, body }),
   update: (token: string, userId: number, body: { role?: string; isActive?: boolean; firstName?: string; lastName?: string; fullVisibility?: boolean }) =>
     req<UserResponse>('PUT', `/api/users/${userId}`, { token, body }),
   deactivate: (token: string, userId: number) =>

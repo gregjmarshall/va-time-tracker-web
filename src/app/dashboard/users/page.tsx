@@ -1,333 +1,109 @@
 'use client'
 
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import Link from 'next/link'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import { MoreHorizontalIcon, SearchIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { auth, users, projects as projectsApi, clients as clientsApi, clientTeamAccess } from '@/lib/api'
+import { users } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import { ROLES, isAdmin, isManagerial, roleLabel, type Role, type UserResponse } from '@/lib/types'
+import { isAdmin, isManagerial, roleLabel, type Role, type UserResponse } from '@/lib/types'
+import { AccessDialog } from '@/components/team/AccessDialog'
+import { AddUserDialog, EditMemberDialog, useInvalidateUsers, useToggleActive } from '@/components/team/MemberDialogs'
+import { canManage, memberInitials, memberName } from '@/components/team/member'
 
-// ── Role Menu ─────────────────────────────────────────────────────────────────
+dayjs.extend(relativeTime)
 
-function RoleMenu({ user, onChange }: { user: UserResponse; onChange: (role: Role) => void }) {
+function lastTrackedLabel(u: UserResponse) {
+  return u.lastTrackedAt ? dayjs(u.lastTrackedAt).fromNow() : 'Never'
+}
+
+function MemberCell({ u }: { u: UserResponse }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-        Change role
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {ROLES.filter((r) => r !== user.role).map((r) => (
-          <DropdownMenuItem key={r} className="cursor-pointer" onClick={() => onChange(r)}>
-            Make {roleLabel(r).toLowerCase()}
+    <Link href={`/dashboard/users/${u.userId}`} className="flex items-center gap-3 min-w-0 max-w-36 md:max-w-none group">
+      <Avatar className="h-8 w-8 shrink-0">
+        <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{memberInitials(u)}</AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+          {memberName(u)}
+          {!u.isActive && <Badge variant="outline" className="ml-2 text-[10px] align-middle">Deactivated</Badge>}
+        </p>
+        {memberName(u) !== u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
+        <p className="text-xs text-muted-foreground md:hidden">Last tracked {lastTrackedLabel(u).toLowerCase()}</p>
+      </div>
+    </Link>
+  )
+}
+
+function RowActions({ u, onEdit, onAccess }: { u: UserResponse; onEdit: () => void; onAccess?: () => void }) {
+  const { user: currentUser } = useAuthStore()
+  const toggleActive = useToggleActive()
+  if (!currentUser || !canManage(currentUser, u)) {
+    return onAccess ? <Button variant="outline" size="sm" className="text-xs" onClick={onAccess}>Access</Button> : null
+  }
+  return (
+    <div className="flex items-center justify-end gap-2">
+      {onAccess && u.isActive && <Button variant="outline" size="sm" className="text-xs" onClick={onAccess}>Access</Button>}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${memberName(u)}`} />}
+        >
+          <MoreHorizontalIcon className="size-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem className="cursor-pointer" onClick={onEdit}>Edit</DropdownMenuItem>
+          <DropdownMenuItem
+            className={`cursor-pointer ${u.isActive ? 'text-destructive' : ''}`}
+            onClick={() => toggleActive.mutate(u)}
+          >
+            {u.isActive ? 'Deactivate' : 'Reactivate'}
           </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
 
-// ── Add User Dialog ───────────────────────────────────────────────────────────
-
-function AddUserDialog({ role, onClose, onCreated }: { role: Role; onClose: () => void; onCreated: (email: string) => void }) {
-  const { token, user: currentUser } = useAuthStore()
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-
-  const label = roleLabel(role).toLowerCase()
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      auth.register(token!, {
-        workspaceId: currentUser!.workspaceId,
-        email,
-        password,
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        role,
-      }),
-    onSuccess: () => {
-      toast.success(`${roleLabel(role)} account created for ${email}`)
-      onCreated(email)
-    },
-    onError: (err: Error) => setError(err.message),
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    if (!email || !password) { setError('Email and password are required'); return }
-    if (password.length < 8) { setError('Password must be at least 8 characters'); return }
-    createMutation.mutate()
-  }
-
+function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader><DialogTitle>Add {label}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="firstName">First name</Label>
-              <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lastName">Last name</Label>
-              <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Smith" />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" required />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Temporary password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 characters" required />
-            <p className="text-xs text-muted-foreground">Share this with the {label} — they can update it later.</p>
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Creating…' : `Create ${label}`}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <section className="mb-8">
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+        {title} <span className="num font-normal">({count})</span>
+      </h2>
+      <div className="rounded-2xl glass-card overflow-x-auto">{children}</div>
+    </section>
   )
 }
 
-// ── Assign Dialog (projects + client access) ──────────────────────────────────
-
-function AssignDialog({ member, onClose }: { member: UserResponse; onClose: () => void }) {
-  const { token } = useAuthStore()
-  const queryClient = useQueryClient()
-  const [tab, setTab] = useState<'projects' | 'clients'>('projects')
-  const [saving, setSaving] = useState(false)
-
-  // Local pending state — toggled instantly, sent on Save
-  const [localProjects, setLocalProjects] = useState<Record<number, boolean>>({})
-  const [localClients, setLocalClients] = useState<Record<number, boolean>>({})
-  const [projectsReady, setProjectsReady] = useState(false)
-  const [clientsReady, setClientsReady] = useState(false)
-
-  const { data: allProjects = [] } = useQuery({
-    queryKey: ['projects-all', token],
-    queryFn: () => projectsApi.list(token!),
-    enabled: !!token,
-  })
-
-  const { data: clientList = [] } = useQuery({
-    queryKey: ['clients', token],
-    queryFn: () => clientsApi.list(token!),
-    enabled: !!token,
-  })
-
-  const { data: assignmentMap = {} } = useQuery({
-    queryKey: ['assignments-for-member', token, member.userId, allProjects.map((p) => p.projectId).join(',')],
-    queryFn: async () => {
-      const results: Record<number, boolean> = {}
-      await Promise.all(
-        allProjects.map(async (p) => {
-          try {
-            const a = await projectsApi.listAssignments(token!, p.projectId)
-            results[p.projectId] = a.some((x) => x.userId === member.userId)
-          } catch {
-            results[p.projectId] = false
-          }
-        })
-      )
-      return results
-    },
-    enabled: !!token && allProjects.length > 0,
-  })
-
-  const { data: clientAccessData } = useQuery({
-    queryKey: ['client-access-for-member', token, member.userId],
-    queryFn: async () => {
-      const results: Record<number, boolean> = {}
-      await Promise.all(
-        clientList.map(async (c) => {
-          try {
-            const data = await clientTeamAccess.list(token!, c.clientId)
-            results[c.clientId] = data.userIds.includes(member.userId)
-          } catch {
-            results[c.clientId] = false
-          }
-        })
-      )
-      return results
-    },
-    enabled: !!token && clientList.length > 0,
-  })
-
-  // Seed local state from server data (once loaded) — adjusted during render rather than in an effect
-  if (!projectsReady && Object.keys(assignmentMap).length > 0) {
-    setLocalProjects({ ...assignmentMap })
-    setProjectsReady(true)
-  }
-
-  if (!clientsReady && clientAccessData && Object.keys(clientAccessData).length > 0) {
-    setLocalClients({ ...clientAccessData })
-    setClientsReady(true)
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      const projectOps = allProjects
-        .filter((p) => (localProjects[p.projectId] ?? false) !== (assignmentMap[p.projectId] ?? false))
-        .map((p) =>
-          localProjects[p.projectId]
-            ? projectsApi.assign(token!, p.projectId, member.userId)
-            : projectsApi.unassign(token!, p.projectId, member.userId)
-        )
-
-      const clientOps = clientList
-        .filter((c) => (localClients[c.clientId] ?? false) !== (clientAccessData?.[c.clientId] ?? false))
-        .map((c) =>
-          localClients[c.clientId]
-            ? clientTeamAccess.grant(token!, c.clientId, member.userId)
-            : clientTeamAccess.revoke(token!, c.clientId, member.userId)
-        )
-
-      await Promise.all([...projectOps, ...clientOps])
-      queryClient.invalidateQueries({ queryKey: ['assignments-for-member'] })
-      queryClient.invalidateQueries({ queryKey: ['client-access-for-member'] })
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      onClose()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Save failed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const byClient = clientList
-    .map((c) => ({ client: c, projects: allProjects.filter((p) => p.clientId === c.clientId) }))
-    .filter((g) => g.projects.length > 0)
-
-  const displayName = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email
-
-  return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Manage access — {displayName}</DialogTitle>
-        </DialogHeader>
-
-        {/* Tabs */}
-        <div className="flex rounded-lg border border-border overflow-hidden text-sm mb-2">
-          <button
-            type="button"
-            onClick={() => setTab('projects')}
-            className={`flex-1 py-2 transition-colors ${tab === 'projects' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Projects
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('clients')}
-            className={`flex-1 py-2 transition-colors ${tab === 'clients' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Client visibility
-          </button>
-        </div>
-
-        <div className="space-y-4 py-2 max-h-96 overflow-y-auto">
-          {tab === 'projects' && (
-            <>
-              {byClient.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No projects yet — create some in Clients.</p>
-              )}
-              {byClient.map(({ client, projects }) => (
-                <div key={client.clientId}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{client.name}</p>
-                  <div className="space-y-1">
-                    {projects.map((p) => (
-                      <label key={p.projectId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={localProjects[p.projectId] ?? assignmentMap[p.projectId] ?? false}
-                          onChange={() => setLocalProjects(prev => ({ ...prev, [p.projectId]: !(prev[p.projectId] ?? assignmentMap[p.projectId] ?? false) }))}
-                          className="rounded border-border accent-primary h-4 w-4"
-                        />
-                        <span className="text-sm">{p.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          {tab === 'clients' && (
-            <>
-              <p className="text-xs text-muted-foreground px-1">
-                Grant visibility to a client so this team member can browse all its projects and team activity — without needing a project assignment.
-              </p>
-              {clientList.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No clients yet.</p>
-              )}
-              {clientList.map((c) => (
-                <label key={c.clientId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={localClients[c.clientId] ?? clientAccessData?.[c.clientId] ?? false}
-                    onChange={() => setLocalClients(prev => ({ ...prev, [c.clientId]: !(prev[c.clientId] ?? clientAccessData?.[c.clientId] ?? false) }))}
-                    className="rounded border-border accent-primary h-4 w-4"
-                  />
-                  <span className="text-sm">{c.name}</span>
-                </label>
-              ))}
-            </>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
+const TH = 'px-3 md:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap'
+const TD = 'px-3 md:px-4 py-3 align-middle'
 
 export default function UsersPage() {
   const { token, user: currentUser } = useAuthStore()
-  const queryClient = useQueryClient()
+  const invalidate = useInvalidateUsers()
   const [addRoleOpen, setAddRoleOpen] = useState<Role | null>(null)
-  const [assignMember, setAssignMember] = useState<UserResponse | null>(null)
+  const [accessFor, setAccessFor] = useState<UserResponse | null>(null)
+  const [editing, setEditing] = useState<UserResponse | null>(null)
+  const [search, setSearch] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
 
   const { data: userList = [], isLoading } = useQuery({
-    queryKey: ['users', token],
-    queryFn: () => users.list(token!),
+    queryKey: ['users-all', token],
+    queryFn: () => users.list(token!, { includeInactive: true }),
     enabled: !!token && isManagerial(currentUser?.role),
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ userId, body }: { userId: number; body: Parameters<typeof users.update>[2] }) =>
-      users.update(token!, userId, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      toast.success('Updated')
-    },
+  const visibility = useMutation({
+    mutationFn: (u: UserResponse) => users.update(token!, u.userId, { fullVisibility: !u.fullVisibility }),
+    onSuccess: () => invalidate(),
     onError: (err: Error) => toast.error(err.message),
   })
 
@@ -335,30 +111,37 @@ export default function UsersPage() {
     return <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Access restricted to managers and admins</div>
   }
 
-  const canManageStaff = isAdmin(currentUser.role)
-  const members = userList.filter((u) => u.role === 'TEAM_MEMBER')
-  const staff = userList.filter((u) => u.role === 'ADMIN' || u.role === 'MANAGER')
+  const canAddStaff = isAdmin(currentUser.role)
+  const q = search.trim().toLowerCase()
+  const inactiveCount = userList.filter((u) => !u.isActive).length
+  const shown = userList
+    .filter((u) => showInactive || u.isActive)
+    .filter((u) => !q || memberName(u).toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    .sort((a, b) => Number(b.isActive) - Number(a.isActive) || memberName(a).localeCompare(memberName(b)))
+  const members = shown.filter((u) => u.role === 'TEAM_MEMBER')
+  const staff = shown.filter((u) => u.role !== 'TEAM_MEMBER')
 
   function handleMemberCreated(email: string) {
     setAddRoleOpen(null)
-    queryClient.invalidateQueries({ queryKey: ['users'] }).then(() => {
-      const newMember = userList.find((u) => u.email === email)
-      if (newMember) setAssignMember(newMember)
+    invalidate()
+    users.list(token!, { includeInactive: true }).then((list) => {
+      const created = list.find((u) => u.email === email.toLowerCase())
+      if (created) setAccessFor(created)
     })
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Team</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage team members and their access</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Who&apos;s on the team, what they can see, and what they&apos;ve been tracking</p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button>+ Add person</Button>} />
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setAddRoleOpen('TEAM_MEMBER')} className="cursor-pointer">Team member</DropdownMenuItem>
-            {canManageStaff && (
+            {canAddStaff && (
               <>
                 <DropdownMenuItem onClick={() => setAddRoleOpen('MANAGER')} className="cursor-pointer">Manager</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setAddRoleOpen('ADMIN')} className="cursor-pointer">Admin</DropdownMenuItem>
@@ -368,157 +151,102 @@ export default function UsersPage() {
         </DropdownMenu>
       </div>
 
-      {/* Team Members */}
-      <div className="mb-8">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Team Members</h2>
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Team member</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Visibility</TableHead>
-                <TableHead>Access</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
-              )}
-              {members.length === 0 && !isLoading && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    No team members yet —{' '}
-                    <button className="text-primary hover:underline" onClick={() => setAddRoleOpen('TEAM_MEMBER')}>add one</button>
-                  </TableCell>
-                </TableRow>
-              )}
-              {members.map((u) => {
-                const initials = [u.firstName?.[0], u.lastName?.[0]].filter(Boolean).join('') || u.email[0].toUpperCase()
-                const displayName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email
-                return (
-                  <TableRow key={u.userId}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{displayName}</p>
-                          <p className="text-xs text-muted-foreground">{u.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{dayjs(u.createdAt).format('D MMM YYYY')}</TableCell>
-                    <TableCell>
-                      <Badge variant={u.isActive ? 'secondary' : 'outline'} className="text-xs">
-                        {u.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        onClick={() => updateMutation.mutate({ userId: u.userId, body: { fullVisibility: !u.fullVisibility } })}
-                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
-                          u.fullVisibility
-                            ? 'bg-primary/10 border-primary/30 text-primary'
-                            : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
-                        }`}
-                        title={u.fullVisibility ? 'Full visibility — click to restrict' : 'Restricted — click to grant full visibility'}
-                      >
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          {u.fullVisibility
-                            ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                            : <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                          }
-                        </svg>
-                        {u.fullVisibility ? 'Full' : 'Restricted'}
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => setAssignMember(u)}>
-                        Manage access
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      {u.userId !== currentUser.userId && (
-                        <div className="flex items-center gap-3">
-                          {canManageStaff && <RoleMenu user={u} onChange={(role) => updateMutation.mutate({ userId: u.userId, body: { role } })} />}
-                          <button
-                            onClick={() => updateMutation.mutate({ userId: u.userId, body: { isActive: !u.isActive } })}
-                            className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                          >
-                            {u.isActive ? 'Deactivate' : 'Reactivate'}
-                          </button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="relative flex-1 min-w-48 max-w-sm">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email…" className="pl-9" />
         </div>
+        {inactiveCount > 0 && (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} className="accent-primary h-4 w-4" />
+            Show deactivated <span className="num">({inactiveCount})</span>
+          </label>
+        )}
       </div>
 
-      {/* Managers & Admins */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Managers &amp; Admins</h2>
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staff.map((u) => {
-                const initials = [u.firstName?.[0], u.lastName?.[0]].filter(Boolean).join('') || u.email[0].toUpperCase()
-                const displayName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email
-                return (
-                  <TableRow key={u.userId}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{displayName}</p>
-                          <p className="text-xs text-muted-foreground">{u.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-xs">{roleLabel(u.role)}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{dayjs(u.createdAt).format('D MMM YYYY')}</TableCell>
-                    <TableCell>
-                      {canManageStaff && u.userId !== currentUser.userId && (
-                        <RoleMenu user={u} onChange={(role) => updateMutation.mutate({ userId: u.userId, body: { role } })} />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <Section title="Team members" count={members.length}>
+        <table className="w-full text-sm">
+          <thead className="border-b border-white/5">
+            <tr>
+              <th className={TH}>Team member</th>
+              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
+              <th className={TH}>Visibility</th>
+              <th className={TH} />
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Loading…</td></tr>}
+            {!isLoading && members.length === 0 && (
+              <tr>
+                <td colSpan={4} className="text-center text-muted-foreground py-8">
+                  {q ? 'No team members match.' : (
+                    <>No team members yet. <button className="text-primary hover:underline" onClick={() => setAddRoleOpen('TEAM_MEMBER')}>Add one</button></>
+                  )}
+                </td>
+              </tr>
+            )}
+            {members.map((u) => (
+              <tr key={u.userId} className={`border-b border-white/5 last:border-0 ${u.isActive ? '' : 'opacity-60'}`}>
+                <td className={TD}><MemberCell u={u} /></td>
+                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden md:table-cell`}>{lastTrackedLabel(u)}</td>
+                <td className={TD}>
+                  <button
+                    onClick={() => visibility.mutate(u)}
+                    disabled={!u.isActive}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${
+                      u.fullVisibility
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={u.fullVisibility ? 'Sees every client. Click to restrict to their access.' : 'Sees only their access. Click to show every client.'}
+                  >
+                    {u.fullVisibility ? 'All clients' : 'Their access'}
+                  </button>
+                </td>
+                <td className={TD}>
+                  <RowActions u={u} onEdit={() => setEditing(u)} onAccess={() => setAccessFor(u)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+
+      <Section title="Managers & Admins" count={staff.length}>
+        <table className="w-full text-sm">
+          <thead className="border-b border-white/5">
+            <tr>
+              <th className={TH}>Name</th>
+              <th className={TH}>Role</th>
+              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
+              <th className={TH} />
+            </tr>
+          </thead>
+          <tbody>
+            {!isLoading && staff.length === 0 && (
+              <tr><td colSpan={4} className="text-center text-muted-foreground py-8">No managers or admins match.</td></tr>
+            )}
+            {staff.map((u) => (
+              <tr key={u.userId} className={`border-b border-white/5 last:border-0 ${u.isActive ? '' : 'opacity-60'}`}>
+                <td className={TD}><MemberCell u={u} /></td>
+                <td className={TD}><Badge variant="secondary" className="text-xs">{roleLabel(u.role)}</Badge></td>
+                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden md:table-cell`}>{lastTrackedLabel(u)}</td>
+                <td className={TD}><RowActions u={u} onEdit={() => setEditing(u)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
 
       {addRoleOpen && (
         <AddUserDialog
           role={addRoleOpen}
           onClose={() => setAddRoleOpen(null)}
-          onCreated={addRoleOpen === 'TEAM_MEMBER' ? handleMemberCreated : () => { setAddRoleOpen(null); queryClient.invalidateQueries({ queryKey: ['users'] }) }}
+          onCreated={addRoleOpen === 'TEAM_MEMBER' ? handleMemberCreated : () => { setAddRoleOpen(null); invalidate() }}
         />
       )}
-      {assignMember && (
-        <AssignDialog member={assignMember} onClose={() => setAssignMember(null)} />
-      )}
+      {accessFor && <AccessDialog member={accessFor} onClose={() => setAccessFor(null)} />}
+      {editing && <EditMemberDialog member={editing} onClose={() => setEditing(null)} />}
     </div>
   )
 }

@@ -27,7 +27,7 @@ function lastTrackedLabel(u: UserResponse) {
 
 function MemberCell({ u }: { u: UserResponse }) {
   return (
-    <Link href={`/dashboard/users/${u.userId}`} className="flex items-center gap-3 min-w-0 group">
+    <Link href={`/dashboard/users/${u.userId}`} className="flex items-center gap-3 min-w-0 max-w-44 md:max-w-none group">
       <Avatar className="h-8 w-8 shrink-0">
         <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{memberInitials(u)}</AvatarFallback>
       </Avatar>
@@ -83,8 +83,8 @@ function Section({ title, count, children }: { title: string; count: number; chi
   )
 }
 
-const TH = 'px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap'
-const TD = 'px-4 py-3 align-middle'
+const TH = 'px-3 md:px-4 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap'
+const TD = 'px-3 md:px-4 py-3 align-middle'
 
 export default function UsersPage() {
   const { token, user: currentUser } = useAuthStore()

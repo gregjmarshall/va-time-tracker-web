@@ -6,6 +6,8 @@ import type {
   ClientManagersResponse,
   ClientResponse,
   MemberAccess,
+  ProjectOverview,
+  AuditEvent,
   ClientWithRetainerResponse,
   ClientBillingResponse,
   PaymentMethod,
@@ -17,6 +19,7 @@ import type {
   ProjectResponse,
   ReportParams,
   RetainerReportResponse,
+  RetainerHistoryResponse,
   RetainerResponse,
   RetainerStatusRow,
   RoundingMode,
@@ -117,8 +120,20 @@ export const projects = {
     req<ProjectResponse[]>('GET', '/api/projects', { token, query: clientId ? { clientId } : {} }),
   create: (token: string, body: { clientId: number; name: string; budgetHours?: number }) =>
     req<ProjectResponse>('POST', '/api/projects', { token, body }),
-  update: (token: string, projectId: number, body: { name?: string; isActive?: boolean }) =>
+  /** budgetHours undefined = unchanged; clearBudget removes it */
+  update: (token: string, projectId: number, body: { name?: string; isActive?: boolean; budgetHours?: number; clearBudget?: boolean }) =>
     req<ProjectResponse>('PUT', `/api/projects/${projectId}`, { token, body }),
+  /** Projects tab: managers get every project with hours and team; team members their own projects and time */
+  overview: (token: string) =>
+    req<ProjectOverview[]>('GET', '/api/projects/overview', { token, query: { tz: Intl.DateTimeFormat().resolvedOptions().timeZone } }),
+  team: (token: string, projectId: number) =>
+    req<{ userIds: number[] }>('GET', `/api/projects/${projectId}/team`, { token }),
+  /** Replaces who is assigned to the project */
+  setTeam: (token: string, projectId: number, userIds: number[]) =>
+    req<{ userIds: number[] }>('PUT', `/api/projects/${projectId}/team`, { token, body: { userIds } }),
+  /** Who changed what and when, newest first */
+  history: (token: string, projectId: number) =>
+    req<AuditEvent[]>('GET', `/api/projects/${projectId}/history`, { token }),
   deactivate: (token: string, projectId: number) =>
     req<void>('DELETE', `/api/projects/${projectId}`, { token }),
   assign: (token: string, projectId: number, userId: number) =>
@@ -235,6 +250,11 @@ export const retainers = {
   /** Corrects one period's hours */
   update: (token: string, retainerId: number, body: { monthlyHours: number }) =>
     req<RetainerResponse>('PUT', `/api/retainers/${retainerId}`, { token, body }),
+  /** Month-by-month allowance vs used: month-end snapshots, plus live for this month */
+  history: (token: string, clientId: number, projectId?: number | null, months = 12) =>
+    req<RetainerHistoryResponse>('GET', '/api/retainers/history', {
+      token, query: projectId ? { clientId, projectId, months } : { clientId, months },
+    }),
 }
 
 // Billing Rates
@@ -257,6 +277,9 @@ export const users = {
   /** Replaces the member's assignments and client visibility with exactly these ids */
   setAccess: (token: string, userId: number, body: MemberAccess) =>
     req<MemberAccess>('PUT', `/api/users/${userId}/access`, { token, body }),
+  /** Who changed what about this person and when, newest first */
+  history: (token: string, userId: number) =>
+    req<AuditEvent[]>('GET', `/api/users/${userId}/history`, { token }),
   update: (token: string, userId: number, body: { role?: string; isActive?: boolean; firstName?: string; lastName?: string; fullVisibility?: boolean }) =>
     req<UserResponse>('PUT', `/api/users/${userId}`, { token, body }),
   deactivate: (token: string, userId: number) =>

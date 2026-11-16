@@ -342,8 +342,8 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   )
 
   return (
-    <div className="flex items-center gap-3 w-full">
-      <div className="flex-1 min-w-24">
+    <div className="flex items-center gap-2 sm:gap-3 w-full">
+      <div className="flex-1 min-w-12 sm:min-w-24">
         <DescriptionInput
           ref={descriptionRef}
           required={descriptionRequired}
@@ -353,7 +353,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           onBlur={handleDescriptionBlur}
         />
       </div>
-      <div className="w-32 lg:w-56 xl:w-72 flex-shrink-0 [&>div>button]:py-2 [&>div>button]:rounded-xl">
+      <div className="w-24 sm:w-32 lg:w-56 xl:w-72 flex-shrink-0 [&>div>button]:py-2 [&>div>button]:rounded-xl">
         <ProjectPicker
           clientList={clientList}
           projectList={projectList}
@@ -362,8 +362,8 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           placeholder="Select project"
         />
       </div>
-      <div className="w-20 flex-shrink-0 text-right">
-        <span className={`num text-lg font-semibold ${isActive ? 'text-white' : 'text-muted-foreground/40'}`}>
+      <div className="w-16 sm:w-20 flex-shrink-0 text-right">
+        <span className={`num text-base sm:text-lg font-semibold ${isActive ? 'text-white' : 'text-muted-foreground/40'}`}>
           {formatElapsed(elapsed)}
         </span>
         {isPaused && <span className="block text-[9px] font-black text-sun uppercase tracking-[0.15em] -mt-0.5">Paused</span>}

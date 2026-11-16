@@ -2,44 +2,46 @@
 
 import { PipMark, PipWordmark } from '@/components/brand/PipLogo'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { auth } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
-import type { Role } from '@/lib/types'
+import { ApiError, auth } from '@/lib/api'
+import { useCompleteLogin } from '@/lib/session'
+import type { WorkspaceChoice } from '@/lib/types'
 
 export default function LoginPage() {
-  const router = useRouter()
-  const setAuth = useAuthStore((s) => s.setAuth)
+  const completeLogin = useCompleteLogin()
+  const [choices, setChoices] = useState<WorkspaceChoice[] | null>(null)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-
-  async function doLogin(token: string, role: string, workspaceId: number) {
-    const me = await auth.me(token)
-    setAuth(token, {
-      userId: me.userId,
-      email: me.email,
-      firstName: me.firstName,
-      lastName: me.lastName,
-      role: role as Role,
-      workspaceId: workspaceId,
-      fullVisibility: me.fullVisibility ?? false,
-    })
-    router.replace('/dashboard')
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
       const res = await auth.login(email, password)
-      await doLogin(res.token, res.role, res.workspaceId)
+      await completeLogin(res.token)
+    } catch (err) {
+      // Same email + password in several agencies: let them pick one
+      const workspaces = err instanceof ApiError && err.status === 409
+        ? (err.body as { workspaces?: WorkspaceChoice[] }).workspaces
+        : undefined
+      if (workspaces?.length) setChoices(workspaces)
+      else toast.error(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function chooseWorkspace(workspaceId: number) {
+    setLoading(true)
+    try {
+      const res = await auth.loginWorkspace(workspaceId, email, password)
+      await completeLogin(res.token)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -69,6 +71,17 @@ export default function LoginPage() {
 
         <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
           <CardContent className="pt-6">
+            {choices ? (
+              <div className="space-y-3">
+                <p className="text-sm">Your account is in more than one agency. Which one?</p>
+                {choices.map((w) => (
+                  <Button key={w.workspaceId} variant="outline" className="w-full justify-start" disabled={loading} onClick={() => chooseWorkspace(w.workspaceId)}>
+                    {w.name}
+                  </Button>
+                ))}
+                <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setChoices(null)}>← Back</button>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
@@ -109,9 +122,12 @@ export default function LoginPage() {
                 {loading ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>
+            )}
 
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              Need an account? Ask your workspace Admin or Manager to add you.
+              New agency? <a href="/signup" className="text-primary hover:underline">Start a free trial</a>
+              <br />
+              Joining a team? Ask your Admin or Manager for an invite link.
             </p>
           </CardContent>
         </Card>

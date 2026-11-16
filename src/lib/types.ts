@@ -120,6 +120,30 @@ export interface ProjectResponse {
   createdAt: string
 }
 
+/** A row of the Projects tab. For team members, hours are their own and memberIds is empty. */
+export interface ProjectOverview {
+  projectId: number
+  clientId: number
+  clientName: string
+  name: string
+  isActive: boolean
+  budgetHours?: number | null
+  hoursThisMonth: number
+  totalHours: number
+  lastTrackedAt?: string | null
+  memberIds: number[]
+}
+
+/** One change in the audit trail */
+export interface AuditEvent {
+  eventId: number
+  actorUserId?: number | null
+  actorName: string
+  action: string
+  summary: string
+  createdAt: string
+}
+
 export interface TimerSessionResponse {
   sessionId: number
   accumulatedSeconds: number

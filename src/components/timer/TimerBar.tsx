@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { invalidateTimeData, useDescriptionRequired } from '@/lib/queries'
 import { ProjectPicker, ProjectSearchList } from './ProjectPicker'
 import { DescriptionInput } from './DescriptionInput'
+import { HelpLink } from '@/components/help/HelpLink'
 
 function formatElapsed(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
@@ -403,6 +404,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           </button>
         </>
       )}
+      <HelpLink slug="timer" className="hidden sm:inline-flex" />
       {dialogs}
     </div>
   )

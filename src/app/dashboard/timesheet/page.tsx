@@ -17,6 +17,7 @@ import { invalidateTimeData } from '@/lib/queries'
 import { isManagerial, type UserResponse } from '@/lib/types'
 import { useAuthStore } from '@/stores/auth'
 import { formatHm, STATUS_CLASS, STATUS_LABEL, timesheets, type TimesheetWeek } from '@/lib/timesheetApi'
+import { HelpLink } from '@/components/help/HelpLink'
 
 dayjs.extend(isoWeek)
 
@@ -77,7 +78,7 @@ export default function TimesheetPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Timesheet</h1>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">Timesheet <HelpLink slug="timesheets" /></h1>
           <p className="text-sm text-muted-foreground">Type hours into the grid (1.5, 1:30 or 90m). Timer and manual entries show up here too.</p>
         </div>
         <div className="flex items-center gap-2">

@@ -42,4 +42,8 @@ Deactivate them on **Team**. Their time stays in reports, and they no longer cou
 
 ## My invite link doesn't work
 
-Invite links work once and expire after 7 days. Ask your Admin or Manager for a new one.
+Invite links work once and expire (after 7 days by default). They can also be cancelled. Ask whoever invited you for a new link.
+
+## pip asks which agency to sign in to
+
+Your email is in more than one agency. Pick the one you want; to switch, sign out and sign in again.

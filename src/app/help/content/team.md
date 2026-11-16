@@ -6,11 +6,14 @@
 
 People join by **invite**. Managers can invite Team members; Admins can invite anyone, as a Team member, Manager or Admin.
 
-1. Press **+ Add person**, then enter their email and choose a role.
-2. pip emails them an invite link. It also shows you the link **once**, so you can copy it and send it yourself if the email doesn't arrive.
-3. They open the link, add their name, choose a password and they're in. See [Your first login](/help/first-login).
+1. Press **+ Add person** and choose **Team member**, **Manager** or **Admin**.
+2. Enter their email and press **Create invite link**.
+3. pip emails them the link and also shows it to you **once**. If the email couldn't be sent, pip says so; copy the link and send it yourself.
+4. They open the link, set their name and password, and they're in. See [Your first login](/help/first-login).
 
-Invite links work once and expire after **7 days**. Until someone accepts, the invite is **pending**: you can cancel it, or send a new one if it has expired. You can't invite an email that's already in the workspace.
+Each link works once and expires (after 7 days by default). Until someone accepts, their invite is listed under **Pending invites** with its expiry date. Use **Cancel invite** to withdraw it. You can't invite an email that's already in the workspace.
+
+**No email?** In the invite dialog, choose **Set a temporary password instead**. You create the account with a password you share with them yourself.
 
 Once a Team member has joined, give them [access](#access-and-visibility) to the projects they'll work on. Adding Team members can change your [plan](/help/trial-and-plans).
 

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 
+/** Mirrors GET /api/pricing. maxMembers and prices are left out on the contact-us tier. */
 interface PricingTier {
   tier: number
   minMembers: number
-  maxMembers: number | null
-  monthlyPrice: number | null
-  annualPrice: number | null
+  maxMembers?: number | null
+  monthlyPrice?: number | null
+  annualPrice?: number | null
   contactUs: boolean
 }
 interface PricingModel { currency: string; trialDays: number; graceDays: number; annualFreeMonths: number; tiers: PricingTier[] }
@@ -21,7 +22,7 @@ const FALLBACK: PricingTier[] = [
 ]
 
 function band(t: PricingTier) {
-  if (t.maxMembers === null) return `${t.minMembers - 1}+ team members`
+  if (t.maxMembers == null) return `${t.minMembers - 1}+ team members`
   if (t.minMembers <= 1) return `Up to ${t.maxMembers} team members`
   return `${t.minMembers}–${t.maxMembers} team members`
 }
@@ -44,19 +45,26 @@ export function PricingTable() {
   const tiers = model?.tiers ?? FALLBACK
 
   return (
-    <div className="help-table">
-      <table>
-        <thead><tr><th>Team size</th><th>Monthly</th><th>Annual</th></tr></thead>
-        <tbody>
-          {tiers.map((t) => (
-            <tr key={t.tier}>
-              <td>{band(t)}</td>
-              <td className="num">{t.contactUs ? 'Contact us' : t.monthlyPrice != null ? `${money(t.monthlyPrice)}/mo` : 'See Pricing'}</td>
-              <td className="num">{t.contactUs ? 'Contact us' : t.annualPrice != null ? `${money(t.annualPrice)}/yr` : 'See Pricing'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <p>
+        {model
+          ? <>Free trial: <strong className="num">{model.trialDays} days</strong>. Annual billing: <strong className="num">{model.annualFreeMonths} months free</strong>.</>
+          : <>See <strong>Pricing</strong> for the trial length and annual discount.</>}
+      </p>
+      <div className="help-table">
+        <table>
+          <thead><tr><th>Team size</th><th>Monthly</th><th>Annual</th></tr></thead>
+          <tbody>
+            {tiers.map((t) => (
+              <tr key={t.tier}>
+                <td>{band(t)}</td>
+                <td className="num">{t.contactUs ? 'Contact us' : t.monthlyPrice != null ? `${money(t.monthlyPrice)}/mo` : 'See Pricing'}</td>
+                <td className="num">{t.contactUs ? 'Contact us' : t.annualPrice != null ? `${money(t.annualPrice)}/yr` : 'See Pricing'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

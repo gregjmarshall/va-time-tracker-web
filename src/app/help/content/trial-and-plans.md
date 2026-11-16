@@ -1,8 +1,12 @@
 # Trial and plans
 
-## Free trial
+## Start an agency
 
-A new agency starts on a **30-day free trial** with every feature. Whoever signs the agency up becomes its first Admin.
+1. On the sign-in page, choose **Start a free trial**.
+2. Enter your **agency name**, **your name**, **email** and a **password** (at least 8 characters).
+3. Press **Create agency**. If pip asks you to verify your email, click the link it sends, then sign in.
+
+You become the agency's first **Admin**, and the free trial starts with every feature. Next, [invite your team](/help/team#add-people).
 
 ## Plans
 
@@ -10,7 +14,7 @@ The price depends on how many **active Team members** you have. **Admins and Man
 
 ::pricing
 
-Paying **annually** gets you 2 months free: the annual price is 10 times the monthly price.
+Prices and the trial length come straight from pip's current price list, so this table is always up to date.
 
 ## Changing size
 

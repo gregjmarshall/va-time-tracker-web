@@ -4,16 +4,22 @@
 
 Team members can't sign themselves up. An Admin or Manager invites you from the **Team** page.
 
-1. Open the invite link in the email from pip, or the link your manager sent you.
-2. Enter your name and choose a password. Your email is already filled in.
-3. You're signed in and land on **Overview**.
+1. Open the invite link from the email pip sent you, or from your manager.
+2. Enter **your name** and **choose a password**. Your email is already filled in.
+3. Press **Accept invite**. You're signed in and land on **Overview**.
 4. Check **Projects** to see what you can track time to. If it's empty, ask your manager to add you to some projects.
 
-An invite link works **once** and expires after **7 days**. If yours has expired, ask for a new one.
+An invite link works **once** and expires (after 7 days by default). If it says the invite has expired, was cancelled or has already been used, ask whoever invited you for a new link.
+
+Some agencies set you up with a **temporary password** instead. In that case, sign in with your email and that password.
+
+## Signing in
+
+Sign in with your email and password. If your email belongs to more than one agency, pip asks *which one?* Pick the agency you want to work in.
 
 ## Starting a new agency
 
-To try pip for your own agency, sign up instead. You become the agency's first Admin, and a [30-day trial](/help/trial-and-plans) starts.
+To try pip for your own agency, choose **Start a free trial** on the sign-in page. See [Trial and plans](/help/trial-and-plans#start-an-agency).
 
 ## Changing your password
 

@@ -72,6 +72,8 @@ export interface SignupResponse {
 export interface WorkspaceChoice {
   workspaceId: number
   name: string
+  /** Tells apart agencies with the same name. */
+  slug: string
 }
 
 export type InviteKind = 'ORG' | 'MEMBER'

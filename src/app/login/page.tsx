@@ -77,6 +77,7 @@ export default function LoginPage() {
                 {choices.map((w) => (
                   <Button key={w.workspaceId} variant="outline" className="w-full justify-start" disabled={loading} onClick={() => chooseWorkspace(w.workspaceId)}>
                     {w.name}
+                    <span className="ml-auto text-xs text-muted-foreground font-normal">{w.slug}</span>
                   </Button>
                 ))}
                 <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setChoices(null)}>← Back</button>

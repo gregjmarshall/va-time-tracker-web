@@ -29,15 +29,35 @@ import type {
   TimerSessionResponse,
   UserResponse,
   WorkspaceResponse,
+  SignupResponse,
+  InviteKind,
+  Invitation,
+  CreatedInvitation,
+  InviteLookup,
+  PricingModel,
+  Role,
 } from './types'
 
-const BASE = ''  // empty = relative URLs, proxied by Next.js rewrites
+const BASE = ''  // empty = relative URLs, forwarded to the backend by src/proxy.ts
 const WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID ?? '1'
+
+/** A failed API call; [body] is the parsed JSON error (e.g. workspace choices on a 409 login). */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly body: unknown) {
+    super(message)
+  }
+}
 
 async function req<T>(
   method: string,
   path: string,
-  opts: { token?: string; body?: unknown; query?: Record<string, string | number | boolean | undefined> } = {}
+  opts: {
+    token?: string
+    body?: unknown
+    query?: Record<string, string | number | boolean | undefined>
+    /** Overrides the X-Workspace-Id header (login into a chosen workspace). */
+    workspaceId?: number
+  } = {}
 ): Promise<T> {
   let url = `${BASE}${path}`
   if (opts.query) {
@@ -53,13 +73,13 @@ async function req<T>(
     headers: {
       'Content-Type': 'application/json',
       ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
-      'X-Workspace-Id': WORKSPACE_ID,
+      'X-Workspace-Id': opts.workspaceId != null ? String(opts.workspaceId) : WORKSPACE_ID,
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error((err as { message?: string }).message ?? res.statusText)
+    throw new ApiError((err as { message?: string }).message ?? res.statusText, res.status, err)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -67,15 +87,23 @@ async function req<T>(
 
 // Auth
 export const auth = {
+  /** Finds the workspace from the email. A 409 ApiError carries `{ workspaces: WorkspaceChoice[] }` when there are several. */
   login: (email: string, password: string) =>
-    req<AuthResponse>('POST', '/api/auth/login-workspace', { body: { email, password } }),
+    req<AuthResponse>('POST', '/api/auth/login', { body: { email, password } }),
+
+  loginWorkspace: (workspaceId: number, email: string, password: string) =>
+    req<AuthResponse>('POST', '/api/auth/login-workspace', { body: { email, password }, workspaceId }),
+
+  /** Public self-serve sign-up: new agency on a trial + its Admin. `website` is a honeypot (leave empty). */
+  signup: (body: { agencyName: string; name: string; email: string; password: string; website?: string }) =>
+    req<SignupResponse>('POST', '/api/auth/signup', { body }),
 
   /** Create an account. Needs a Manager/Admin token (the backend refuses anonymous sign-up once a workspace has users). */
   register: (token: string, body: { workspaceId: number; email: string; password: string; firstName?: string; lastName?: string; role?: string }) =>
     req<AuthResponse>('POST', '/api/auth/register', { token, body }),
 
   me: (token: string) =>
-    req<{ userId: number; email: string; firstName?: string; lastName?: string; role: string; workspaceId: number; isActive: boolean; fullVisibility: boolean }>(
+    req<{ userId: number; email: string; firstName?: string; lastName?: string; role: string; workspaceId: number; isActive: boolean; fullVisibility: boolean; isOwner?: boolean }>(
       'GET', '/api/auth/me', { token }
     ),
 
@@ -84,6 +112,25 @@ export const auth = {
 
   resetPassword: (token: string, password: string) =>
     req<void>('POST', '/api/auth/reset-password', { body: { token, password } }),
+}
+
+// Invite links (MEMBER: Admins/Managers; ORG: platform owners)
+export const invitations = {
+  create: (token: string, body: { kind?: InviteKind; email: string; role?: Role; agencyName?: string }) =>
+    req<CreatedInvitation>('POST', '/api/invitations', { token, body }),
+  list: (token: string, kind: InviteKind = 'MEMBER') =>
+    req<Invitation[]>('GET', '/api/invitations', { token, query: { kind } }),
+  revoke: (token: string, invitationId: number) =>
+    req<void>('DELETE', `/api/invitations/${invitationId}`, { token }),
+  lookup: (inviteToken: string) =>
+    req<InviteLookup>('GET', `/api/invitations/lookup/${encodeURIComponent(inviteToken)}`),
+  accept: (body: { token: string; name: string; password: string; agencyName?: string }) =>
+    req<AuthResponse>('POST', '/api/invitations/accept', { body }),
+}
+
+/** Public price list (from backend config). */
+export const pricing = {
+  get: () => req<PricingModel>('GET', '/api/pricing'),
 }
 
 // Workspace

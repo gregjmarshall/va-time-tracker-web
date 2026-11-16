@@ -96,6 +96,15 @@ const adminNav = [
   { href: '/help', label: 'Help', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01" strokeLinecap="round" strokeLinejoin="round" /></svg> },
 ]
 
+/** Platform owners only (operators of pip, not a workspace role). */
+const ownerNav = [
+  {
+    href: '/dashboard/owner',
+    label: 'Owner',
+    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2 8 12.7 4 8.8l5.5-.8L12 3z" strokeLinecap="round" strokeLinejoin="round" /></svg>,
+  },
+]
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -165,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Nav */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-          {(user.role === 'TEAM_MEMBER' ? workerNav : adminNav).map((item) => {
+          {[...(user.role === 'TEAM_MEMBER' ? workerNav : adminNav), ...(user.isOwner ? ownerNav : [])].map((item) => {
             const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
             return (
               <Link

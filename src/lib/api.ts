@@ -31,7 +31,7 @@ import type {
   WorkspaceResponse,
 } from './types'
 
-const BASE = ''  // empty = relative URLs, forwarded to the backend by src/proxy.ts
+const BASE = ''  // empty = relative URLs, proxied by Next.js rewrites
 const WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID ?? '1'
 
 async function req<T>(

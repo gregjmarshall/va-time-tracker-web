@@ -100,7 +100,7 @@ function ProjectCard({ project }: { project: ClientActivityProject }) {
 export default function ClientActivityPage() {
   const { clientId } = useParams<{ clientId: string }>()
   const router = useRouter()
-  const { token, user } = useAuthStore()
+  const { token } = useAuthStore()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['client-activity', token, clientId],

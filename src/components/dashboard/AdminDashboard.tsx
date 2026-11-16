@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { reports } from '@/lib/api'
+import { calendar, reports } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { retainerBurn, type BurnStatus } from '@/lib/retainerBurn'
 import { ACCENT, clientColor } from '@/lib/colors'
@@ -85,9 +85,16 @@ export function AdminDashboard() {
     enabled: !!token,
   })
 
+  const { data: bankHolidays } = useQuery({
+    queryKey: ['bank-holidays', 'england-and-wales'],
+    queryFn: () => calendar.bankHolidays('england-and-wales'),
+    staleTime: 24 * 60 * 60 * 1000,
+    select: (d) => new Set(d.holidays.map((h) => h.date)),
+  })
+
   const retainers = (retainerReport?.rows ?? [])
     .filter((r) => r.retainerHours)
-    .map((r) => ({ row: r, burn: retainerBurn(r.retainerHours!, r.actualHours) }))
+    .map((r) => ({ row: r, burn: retainerBurn(r.retainerHours!, r.actualHours, bankHolidays) }))
     .sort((a, b) => BURN_ORDER.indexOf(a.burn.status) - BURN_ORDER.indexOf(b.burn.status) || (a.burn.pace ?? 1) - (b.burn.pace ?? 1))
   const atRisk = retainers.filter((r) => r.burn.status === 'red').length
 

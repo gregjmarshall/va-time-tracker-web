@@ -149,11 +149,12 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   // Stop backend entry without requiring project (used for pause)
   const pauseMutation = useMutation({
-    mutationFn: async () => {
+    // needsDescription: paused because Stop was pressed without the required description
+    mutationFn: async (_opts?: { needsDescription?: boolean }) => {
       await pendingUpdateRef.current
       return timeEntries.stop(token!)
     },
-    onSuccess: (stoppedEntry) => {
+    onSuccess: (stoppedEntry, opts) => {
       accumulatedRef.current = elapsed
       segmentIdsRef.current.push(stoppedEntry.entryId)
       const session = {
@@ -172,7 +173,12 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
       queryClient.invalidateQueries({ queryKey: ['active-timer'] })
       onChanged()
       setTimerState('paused')
-      toast.success('Paused')
+      if (opts?.needsDescription) {
+        toast.warning('Timer paused. Add a description, then press stop to save.')
+        descriptionRef.current?.focus()
+      } else {
+        toast.success('Paused')
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   })
@@ -254,7 +260,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   function handlePlayPause() {
     if (timerState === 'running') {
-      pauseMutation.mutate()
+      pauseMutation.mutate({})
     } else if (timerState === 'paused') {
       startMutation.mutate()
     } else {
@@ -264,8 +270,13 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   function handleStop() {
     if (descriptionRequired && !description.trim()) {
-      toast.error('Add a description before saving')
-      descriptionRef.current?.focus()
+      // Don't keep the clock running while we wait for a description: pause, then ask for it
+      if (timerState === 'running') {
+        pauseMutation.mutate({ needsDescription: true })
+      } else {
+        toast.error('Add a description before saving')
+        descriptionRef.current?.focus()
+      }
       return
     }
     const projectId = selectedProjectId ?? activeEntry?.projectId ?? null

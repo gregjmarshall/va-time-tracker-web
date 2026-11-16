@@ -38,7 +38,7 @@ import type {
   Role,
 } from './types'
 
-const BASE = ''  // empty = relative URLs, proxied by Next.js rewrites
+const BASE = ''  // empty = relative URLs, forwarded to the backend by src/proxy.ts
 const WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID ?? '1'
 
 /** A failed API call; [body] is the parsed JSON error (e.g. workspace choices on a 409 login). */

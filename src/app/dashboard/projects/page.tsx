@@ -18,6 +18,7 @@ import { clients as clientsApi, projects as projectsApi, timeEntries, timerSessi
 import { clientColor } from '@/lib/colors'
 import { useAuthStore } from '@/stores/auth'
 import { isManagerial, type ProjectOverview, type UserResponse } from '@/lib/types'
+import { HelpLink } from '@/components/help/HelpLink'
 
 dayjs.extend(relativeTime)
 
@@ -108,7 +109,7 @@ function ManagerProjects() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Projects</h1>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">Projects <HelpLink slug="projects" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Every project, its budget and who&apos;s on it · <span className="num">{fh(monthTotal)}</span> this month
           </p>
@@ -255,7 +256,7 @@ function MyProjects() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">My projects</h1>
+        <h1 className="text-2xl font-semibold flex items-center gap-2">My projects <HelpLink slug="my-projects" /></h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           What you can track time to · <span className="num">{fh(monthTotal)}</span> logged this month
         </p>

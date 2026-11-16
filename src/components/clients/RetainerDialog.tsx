@@ -12,6 +12,7 @@ import { retainers } from '@/lib/api'
 import { RetainerUsageBars } from './RetainerUsageBars'
 import { useAuthStore } from '@/stores/auth'
 import type { ClientResponse, ProjectResponse, RetainerResponse } from '@/lib/types'
+import { HelpLink } from '@/components/help/HelpLink'
 
 const selectClass = 'w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-primary/50 [&>option]:bg-[#151737]'
 
@@ -98,7 +99,7 @@ export function RetainerDialog({ client, projects, onClose }: {
   return (
     <Dialog open={client !== null} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Retainers · {client?.name}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2">Retainers · {client?.name} <HelpLink slug="retainers" /></DialogTitle></DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">

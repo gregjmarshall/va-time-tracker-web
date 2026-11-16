@@ -18,6 +18,7 @@ import { isAdmin, isManagerial, roleLabel, type Role, type UserResponse } from '
 import { AccessDialog } from '@/components/team/AccessDialog'
 import { AddUserDialog, EditMemberDialog, useInvalidateUsers, useToggleActive } from '@/components/team/MemberDialogs'
 import { canManage, memberInitials, memberName } from '@/components/team/member'
+import { HelpLink } from '@/components/help/HelpLink'
 
 dayjs.extend(relativeTime)
 
@@ -134,7 +135,7 @@ export default function UsersPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Team</h1>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">Team <HelpLink slug="team" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">Who&apos;s on the team, what they can see, and what they&apos;ve been tracking</p>
         </div>
         <DropdownMenu>

@@ -52,6 +52,80 @@ export interface WorkspaceResponse {
   /** When true, time entries can't be saved without a description. */
   descriptionRequired: boolean
   createdAt: string
+  /** TRIAL, ACTIVE, OVERDUE or SUSPENDED */
+  status?: WorkspaceStatus
+  trialEndsAt?: string
+  createdVia?: 'SIGNUP' | 'INVITE'
+}
+
+export type WorkspaceStatus = 'TRIAL' | 'ACTIVE' | 'OVERDUE' | 'SUSPENDED'
+
+export interface SignupResponse {
+  /** Missing when email verification is required. */
+  auth?: AuthResponse
+  workspaceId: number
+  slug: string
+  trialEndsAt?: string
+  verificationRequired: boolean
+}
+
+export interface WorkspaceChoice {
+  workspaceId: number
+  name: string
+  /** Tells apart agencies with the same name. */
+  slug: string
+}
+
+export type InviteKind = 'ORG' | 'MEMBER'
+export type InviteState = 'OPEN' | 'USED' | 'EXPIRED' | 'REVOKED'
+
+export interface Invitation {
+  invitationId: number
+  kind: InviteKind
+  email: string
+  role: Role
+  agencyName?: string
+  workspaceId?: number
+  state: InviteState
+  expiresAt: string
+  usedAt?: string
+  createdAt: string
+}
+
+/** Only returned at creation: the link can't be fetched again. */
+export interface CreatedInvitation {
+  invitation: Invitation
+  token: string
+  url: string
+  emailSent: boolean
+}
+
+export interface InviteLookup {
+  kind: InviteKind
+  email: string
+  role: Role
+  state: InviteState
+  expiresAt: string
+  workspaceName?: string
+  agencyName?: string
+  invitedBy?: string
+}
+
+export interface PricingTier {
+  tier: number
+  minMembers: number
+  maxMembers?: number
+  monthlyPrice?: number
+  annualPrice?: number
+  contactUs: boolean
+}
+
+export interface PricingModel {
+  currency: string
+  trialDays: number
+  graceDays: number
+  annualFreeMonths: number
+  tiers: PricingTier[]
 }
 
 export interface ClientResponse {

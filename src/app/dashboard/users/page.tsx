@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth'
 import { isAdmin, isManagerial, roleLabel, type Role, type UserResponse } from '@/lib/types'
 import { AccessDialog } from '@/components/team/AccessDialog'
 import { AddUserDialog, EditMemberDialog, useInvalidateUsers, useToggleActive } from '@/components/team/MemberDialogs'
+import { InviteDialog, PendingInvites } from '@/components/team/InviteDialogs'
 import { canManage, memberInitials, memberName } from '@/components/team/member'
 
 dayjs.extend(relativeTime)
@@ -90,6 +91,8 @@ export default function UsersPage() {
   const { token, user: currentUser } = useAuthStore()
   const invalidate = useInvalidateUsers()
   const [addRoleOpen, setAddRoleOpen] = useState<Role | null>(null)
+  /** Fallback: create the account directly with a temporary password. */
+  const [passwordMode, setPasswordMode] = useState(false)
   const [accessFor, setAccessFor] = useState<UserResponse | null>(null)
   const [editing, setEditing] = useState<UserResponse | null>(null)
   const [search, setSearch] = useState('')
@@ -163,6 +166,8 @@ export default function UsersPage() {
           </label>
         )}
       </div>
+
+      <PendingInvites />
 
       <Section title="Team members" count={members.length}>
         <table className="w-full text-sm">
@@ -238,11 +243,16 @@ export default function UsersPage() {
         </table>
       </Section>
 
-      {addRoleOpen && (
+      {addRoleOpen && !passwordMode && (
+        <InviteDialog role={addRoleOpen} onClose={() => setAddRoleOpen(null)} onUsePassword={() => setPasswordMode(true)} />
+      )}
+      {addRoleOpen && passwordMode && (
         <AddUserDialog
           role={addRoleOpen}
-          onClose={() => setAddRoleOpen(null)}
-          onCreated={addRoleOpen === 'TEAM_MEMBER' ? handleMemberCreated : () => { setAddRoleOpen(null); invalidate() }}
+          onClose={() => { setAddRoleOpen(null); setPasswordMode(false) }}
+          onCreated={addRoleOpen === 'TEAM_MEMBER'
+            ? (email) => { setPasswordMode(false); handleMemberCreated(email) }
+            : () => { setAddRoleOpen(null); setPasswordMode(false); invalidate() }}
         />
       )}
       {accessFor && <AccessDialog member={accessFor} onClose={() => setAccessFor(null)} />}

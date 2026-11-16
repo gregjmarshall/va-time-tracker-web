@@ -13,6 +13,8 @@ interface AuthUser {
   role: Role
   workspaceId: number
   fullVisibility?: boolean
+  /** Platform owner (operator of pip) — not a workspace role. */
+  isOwner?: boolean
 }
 
 interface AuthState {

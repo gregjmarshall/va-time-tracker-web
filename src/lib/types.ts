@@ -272,6 +272,24 @@ export interface RetainerResponse {
   createdAt: string
 }
 
+/** One month of a retainer's allowance vs rounded hours used; `live` = the current month (not final). */
+export interface RetainerHistoryMonth {
+  /** "YYYY-MM" */
+  month: string
+  allowanceHours: number
+  actualHours: number
+  varianceHours: number
+  isOver: boolean
+  live: boolean
+}
+
+export interface RetainerHistoryResponse {
+  clientId: number
+  projectId?: number | null
+  /** Oldest first; months without a retainer are left out */
+  months: RetainerHistoryMonth[]
+}
+
 export interface BillingRateResponse {
   rateId: number
   workspaceId: number

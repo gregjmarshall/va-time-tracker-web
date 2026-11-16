@@ -120,6 +120,30 @@ export interface ProjectResponse {
   createdAt: string
 }
 
+/** A row of the Projects tab. For team members, hours are their own and memberIds is empty. */
+export interface ProjectOverview {
+  projectId: number
+  clientId: number
+  clientName: string
+  name: string
+  isActive: boolean
+  budgetHours?: number | null
+  hoursThisMonth: number
+  totalHours: number
+  lastTrackedAt?: string | null
+  memberIds: number[]
+}
+
+/** One change in the audit trail */
+export interface AuditEvent {
+  eventId: number
+  actorUserId?: number | null
+  actorName: string
+  action: string
+  summary: string
+  createdAt: string
+}
+
 export interface TimerSessionResponse {
   sessionId: number
   accumulatedSeconds: number
@@ -246,6 +270,24 @@ export interface RetainerResponse {
   effectiveFrom: string
   effectiveTo?: string
   createdAt: string
+}
+
+/** One month of a retainer's allowance vs rounded hours used; `live` = the current month (not final). */
+export interface RetainerHistoryMonth {
+  /** "YYYY-MM" */
+  month: string
+  allowanceHours: number
+  actualHours: number
+  varianceHours: number
+  isOver: boolean
+  live: boolean
+}
+
+export interface RetainerHistoryResponse {
+  clientId: number
+  projectId?: number | null
+  /** Oldest first; months without a retainer are left out */
+  months: RetainerHistoryMonth[]
 }
 
 export interface BillingRateResponse {

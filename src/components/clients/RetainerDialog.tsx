@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { retainers } from '@/lib/api'
+import { RetainerUsageBars } from './RetainerUsageBars'
 import { useAuthStore } from '@/stores/auth'
 import type { ClientResponse, ProjectResponse, RetainerResponse } from '@/lib/types'
 
@@ -139,6 +140,13 @@ export function RetainerDialog({ client, projects, onClose }: {
               {setMutation.isPending ? 'Saving…' : current ? 'Change retainer' : 'Set retainer'}
             </Button>
           </div>
+
+          {clientId && scopes.includes(scope) && (
+            <div className="border-t border-border pt-4">
+              <h3 className="text-sm font-semibold mb-2">Used vs allowance · {scopeName(scope)}</h3>
+              <RetainerUsageBars clientId={clientId} projectId={scope} />
+            </div>
+          )}
 
           <div className="border-t border-border pt-4">
             <h3 className="text-sm font-semibold mb-2">History</h3>

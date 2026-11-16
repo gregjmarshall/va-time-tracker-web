@@ -51,6 +51,9 @@ export function AccessDialog({ member, onClose }: { member: UserResponse; onClos
     mutationFn: () => users.setAccess(token!, member.userId, { projectIds: [...projectIds!], clientIds: [...clientIds!] }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['member-access'] })
+      queryClient.invalidateQueries({ queryKey: ['member-history'] })
+      queryClient.invalidateQueries({ queryKey: ['project-history'] })
+      queryClient.invalidateQueries({ queryKey: ['projects-overview'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       toast.success(`Access updated for ${memberName(member)}`)
       onClose()

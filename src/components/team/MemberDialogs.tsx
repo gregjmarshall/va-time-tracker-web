@@ -20,6 +20,7 @@ export function useInvalidateUsers() {
   return () => {
     queryClient.invalidateQueries({ queryKey: ['users'] })
     queryClient.invalidateQueries({ queryKey: ['users-all'] })
+    queryClient.invalidateQueries({ queryKey: ['member-history'] })
   }
 }
 

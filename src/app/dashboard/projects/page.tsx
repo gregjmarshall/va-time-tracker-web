@@ -242,6 +242,7 @@ function MyProjects() {
     mutationFn: (p: ProjectOverview) => timeEntries.start(token!, { projectId: p.projectId, description: '' }),
     onSuccess: (_, p) => {
       queryClient.invalidateQueries({ queryKey: ['active-timer'] })
+      queryClient.invalidateQueries({ queryKey: ['projects-overview'] })
       toast.success(`Timer started on ${p.name}. Add what you're working on above.`)
     },
     onError: (err: Error) => toast.error(err.message),

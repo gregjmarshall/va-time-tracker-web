@@ -1,8 +1,11 @@
 /**
  * A small build-time Markdown renderer for the help pages (our own trusted content only).
  * Supports: ## / ### headings (with ids), paragraphs, - and 1. lists, > callouts, | tables,
- * **bold**, *italic*, `code`, [links](/path) and <!-- comments --> (dropped).
+ * **bold**, *italic*, `code`, [links](/path), <!-- comments --> (dropped) and `::name` widget lines
+ * (emitted as a WIDGET marker the page swaps for a component).
  */
+
+export const WIDGET = /<!--widget:([a-z-]+)-->/
 
 export interface Heading { id: string; text: string; level: 2 | 3 }
 export interface ParsedDoc { title: string; html: string; headings: Heading[]; text: string }
@@ -41,6 +44,9 @@ export function parseMarkdown(md: string): ParsedDoc {
     if (!t) { i++; continue }
 
     if (t.startsWith('# ')) { title = t.slice(2).trim(); i++; continue }
+
+    const widget = /^::([a-z-]+)$/.exec(t)
+    if (widget) { out.push(`<!--widget:${widget[1]}-->`); i++; continue }
 
     const h = /^(##|###) (.+)$/.exec(t)
     if (h) {
@@ -96,7 +102,7 @@ export function parseMarkdown(md: string): ParsedDoc {
     }
 
     const para: string[] = []
-    while (i < lines.length && lines[i].trim() && !/^(#{1,3} |- |\d+\. |>|\|)/.test(lines[i].trim())) {
+    while (i < lines.length && lines[i].trim() && !/^(#{1,3} |- |\d+\. |>|\||::)/.test(lines[i].trim())) {
       para.push(lines[i].trim())
       i++
     }

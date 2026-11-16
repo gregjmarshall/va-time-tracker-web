@@ -1,12 +1,19 @@
 # Your first login
 
-## Getting an account
+## Joining your agency
 
-There's no self sign-up for team members. An Admin or Manager creates your account from the **Team** page and gives you a **temporary password**.
+Team members can't sign themselves up. An Admin or Manager invites you from the **Team** page.
 
-1. Go to the pip sign-in page and enter your email and temporary password.
-2. You land on **Overview**.
-3. Check **Projects** to see what you can track time to. If it's empty, ask your manager to add you to some projects.
+1. Open the invite link in the email from pip, or the link your manager sent you.
+2. Enter your name and choose a password. Your email is already filled in.
+3. You're signed in and land on **Overview**.
+4. Check **Projects** to see what you can track time to. If it's empty, ask your manager to add you to some projects.
+
+An invite link works **once** and expires after **7 days**. If yours has expired, ask for a new one.
+
+## Starting a new agency
+
+To try pip for your own agency, sign up instead. You become the agency's first Admin, and a [30-day trial](/help/trial-and-plans) starts.
 
 ## Changing your password
 

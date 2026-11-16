@@ -4,13 +4,15 @@
 
 ## Add people
 
-Press **+ Add person** and choose a role. Managers can add Team members; Admins can add anyone.
+People join by **invite**. Managers can invite Team members; Admins can invite anyone, as a Team member, Manager or Admin.
 
-1. Enter their name, email and a **temporary password** (at least 8 characters).
-2. Press **Create**.
-3. Share the password with them yourself. pip doesn't send an invite email yet.
+1. Press **+ Add person**, then enter their email and choose a role.
+2. pip emails them an invite link. It also shows you the link **once**, so you can copy it and send it yourself if the email doesn't arrive.
+3. They open the link, add their name, choose a password and they're in. See [Your first login](/help/first-login).
 
-After you add a Team member, pip opens their **Access** so you can choose what they work on.
+Invite links work once and expire after **7 days**. Until someone accepts, the invite is **pending**: you can cancel it, or send a new one if it has expired. You can't invite an email that's already in the workspace.
+
+Once a Team member has joined, give them [access](#access-and-visibility) to the projects they'll work on. Adding Team members can change your [plan](/help/trial-and-plans).
 
 ## Access and visibility
 

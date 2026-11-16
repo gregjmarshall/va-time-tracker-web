@@ -2,19 +2,16 @@
 
 ## Free trial
 
-New workspaces get a **30-day free trial** with every feature.
+A new agency starts on a **30-day free trial** with every feature. Whoever signs the agency up becomes its first Admin.
 
 ## Plans
 
-Plans are priced by the number of team members:
+The price depends on how many **active Team members** you have. **Admins and Managers are free**, and deactivated people don't count.
 
-| Team size | Price |
-|---|---|
-| Up to 10 team members | See Pricing |
-| 11–25 team members | See Pricing |
-| 26–50 team members | See Pricing |
-| 50+ team members | Contact us |
+::pricing
 
-For prices, see **Pricing**. Paying **annually** gets you 2 months free.
+Paying **annually** gets you 2 months free: the annual price is 10 times the monthly price.
 
-<!-- TODO(help-docs): read prices from GET /api/pricing once the owner-signup work exposes it. -->
+## Changing size
+
+Your plan follows your team size. Adding Team members can move you into the next band, and deactivating people can move you down.

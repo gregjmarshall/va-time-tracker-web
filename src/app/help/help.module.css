@@ -4,7 +4,7 @@
   font-size: 0.9375rem;
   line-height: 1.7;
 }
-.prose > :first-child { margin-top: 0; }
+.prose > :first-child, .prose > :first-child > :first-child { margin-top: 0; }
 .prose h2 {
   margin: 2rem 0 0.75rem;
   font-size: 1.125rem;

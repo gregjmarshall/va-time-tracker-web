@@ -3,6 +3,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { allSlugs, getDoc } from '../docs'
 import styles from '../help.module.css'
+import { WIDGET } from '../markdown'
+import { PricingTable } from '../PricingTable'
+
+const WIDGETS: Record<string, React.ReactNode> = { pricing: <PricingTable /> }
 
 export const dynamicParams = false
 
@@ -38,7 +42,12 @@ export default async function HelpPage({ params }: { params: Promise<{ slug: str
           ))}
         </nav>
       )}
-      <div className={`${styles.prose} mt-6 rounded-2xl glass-card p-5 sm:p-7`} dangerouslySetInnerHTML={{ __html: doc.html }} />
+      <div className={`${styles.prose} mt-6 rounded-2xl glass-card p-5 sm:p-7`}>
+        {doc.html.split(new RegExp(WIDGET.source)).map((part, j) =>
+          // split() with a capture group alternates html, widget name, html, …
+          j % 2 === 1 ? <div key={j}>{WIDGETS[part]}</div> : <div key={j} dangerouslySetInnerHTML={{ __html: part }} />,
+        )}
+      </div>
       <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
         {prev ? (
           <Link href={`/help/${prev.slug}`} className="rounded-xl glass-card px-4 py-3 hover:bg-white/5">

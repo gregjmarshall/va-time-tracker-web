@@ -38,4 +38,8 @@ An Admin or Manager has deactivated your account. Ask them to reactivate it.
 
 ## Someone left the agency
 
-Deactivate them on **Team**. Their time stays in reports.
+Deactivate them on **Team**. Their time stays in reports, and they no longer count towards your [plan](/help/trial-and-plans).
+
+## My invite link doesn't work
+
+Invite links work once and expire after 7 days. Ask your Admin or Manager for a new one.

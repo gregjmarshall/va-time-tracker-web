@@ -112,7 +112,7 @@ export default function MemberPage() {
   if (usersLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>
   if (!member) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="page">
         <Link href="/dashboard/users" className="text-sm text-muted-foreground hover:text-foreground">← Team</Link>
         <p className="mt-6 text-sm text-muted-foreground">That team member doesn&apos;t exist.</p>
       </div>
@@ -142,7 +142,7 @@ export default function MemberPage() {
   const manageable = !!currentUser && canManage(currentUser, member)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="page space-y-6">
       <Link href="/dashboard/users" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeftIcon className="size-4" /> Team
       </Link>
@@ -154,7 +154,7 @@ export default function MemberPage() {
             <AvatarFallback className="bg-primary/15 text-primary font-semibold">{memberInitials(member)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <h1 className="text-3xl font-normal truncate">{memberName(member)}</h1>
+            <h1 className="text-3xl font-medium truncate">{memberName(member)}</h1>
             <p className="text-sm text-muted-foreground truncate">{member.email}</p>
             <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
               <Badge variant="secondary" className="text-xs">{roleLabel(member.role)}</Badge>

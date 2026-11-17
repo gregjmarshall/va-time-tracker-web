@@ -252,10 +252,10 @@ export default function ClientsPage() {
   })
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="page">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-normal text-foreground">Clients</h1>
+          <h1 className="text-3xl font-medium text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{isTeamMember ? 'Your assigned clients and projects' : 'Manage clients, projects and retainers'}</p>
         </div>
         {!isTeamMember && <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>}

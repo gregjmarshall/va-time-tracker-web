@@ -20,10 +20,12 @@ export default function SignupPage() {
   const [website, setWebsite] = useState('') // honeypot
   const [loading, setLoading] = useState(false)
   const [checkEmail, setCheckEmail] = useState(false)
+  const [emailInUse, setEmailInUse] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    setEmailInUse(false)
     try {
       const res = await auth.signup({ agencyName, name, email, password, website: website || undefined })
       if (res.verificationRequired || !res.auth) {
@@ -32,7 +34,10 @@ export default function SignupPage() {
       }
       await completeLogin(res.auth.token, '/welcome')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Sign-up failed')
+      const message = err instanceof Error ? err.message : 'Sign-up failed'
+      // The account already exists: point to sign-in rather than a dead-end error
+      if (message.includes('already has a pip account')) setEmailInUse(true)
+      else toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -52,6 +57,13 @@ export default function SignupPage() {
       footer={<>Already using pip? <Link href="/login" className="text-primary hover:underline">Sign in</Link></>}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {emailInUse && (
+          <div role="alert" className="rounded-md border border-primary/30 bg-primary/[0.06] px-3.5 py-3 text-sm">
+            <strong>{email}</strong> already has a pip account.{' '}
+            <Link href="/login" className="text-primary hover:underline">Sign in</Link> or{' '}
+            <Link href="/forgot-password" className="text-primary hover:underline">reset your password</Link>.
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="agencyName">Agency name</Label>
           <Input id="agencyName" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} placeholder="Bright Side VAs" required maxLength={100} autoFocus />

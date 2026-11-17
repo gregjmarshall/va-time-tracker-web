@@ -136,10 +136,10 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="page">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-normal flex items-center gap-2">Team <HelpLink slug="team" /></h1>
+          <h1 className="text-3xl font-medium flex items-center gap-2">Team <HelpLink slug="team" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">Who&apos;s on the team, what they can see, and what they&apos;ve been tracking</p>
         </div>
         <DropdownMenu>

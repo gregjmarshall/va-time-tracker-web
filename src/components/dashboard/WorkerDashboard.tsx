@@ -256,16 +256,16 @@ export function WorkerDashboard() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-10 pt-8 pb-6">
+      <div className="flex items-center justify-between max-w-[1320px] px-4 sm:px-6 lg:px-10 pt-8 pb-6">
         <div>
-          <h1 className="text-3xl font-normal text-foreground">{greeting}, {firstName}</h1>
+          <h1 className="text-3xl font-medium text-foreground">{greeting}, {firstName}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{dayjs().format('dddd, D MMMM YYYY')}</p>
         </div>
       </div>
 
       {/* Body */}
       <div className="flex-1 px-4 sm:px-6 lg:px-10 pb-10">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-[1240px] space-y-6">
           <AccessUpdates />
           <FirstDayCard projects={projectList} clients={clientList} hasEntries={(recentData?.entries?.length ?? 0) > 0} />
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">

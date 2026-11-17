@@ -131,7 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!mounted || !token || !user) return null
 
-  const initials = [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('') || user.email[0].toUpperCase()
+  const initials = ([user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('') || user.email[0]).toUpperCase()
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
   const isTimerRunning = activeTimer?.isRunning ?? false
 

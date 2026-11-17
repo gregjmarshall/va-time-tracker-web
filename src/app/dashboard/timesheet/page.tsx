@@ -75,10 +75,10 @@ export default function TimesheetPage() {
   const viewingSomeoneElse = viewedUserId !== undefined && viewedUserId !== user?.userId
 
   return (
-    <div className="space-y-6 px-6 py-8">
+    <div className="page space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-normal text-foreground flex items-center gap-2">Timesheet <HelpLink slug="timesheets" /></h1>
+          <h1 className="text-3xl font-medium text-foreground flex items-center gap-2">Timesheet <HelpLink slug="timesheets" /></h1>
           <p className="text-sm text-muted-foreground">Type hours into the grid (1.5, 1:30 or 90m). Timer and manual entries show up here too.</p>
         </div>
         <div className="flex items-center gap-2">

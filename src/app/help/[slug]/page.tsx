@@ -32,7 +32,7 @@ export default async function HelpPage({ params }: { params: Promise<{ slug: str
   return (
     <article>
       <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/70">{doc.section}</p>
-      <h1 className="mt-1 text-3xl font-normal text-foreground">{doc.title}</h1>
+      <h1 className="mt-1 text-3xl font-medium text-foreground">{doc.title}</h1>
       {doc.headings.filter((h) => h.level === 2).length > 2 && (
         <nav aria-label="On this page" className="mt-4 flex flex-wrap gap-2">
           {doc.headings.filter((h) => h.level === 2).map((h) => (

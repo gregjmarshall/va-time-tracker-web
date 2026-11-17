@@ -43,7 +43,7 @@ export const DescriptionInput = forwardRef<HTMLInputElement, {
         }}
       />
       {open && list.length > 0 && (
-        <div className="absolute top-full mt-2 w-full bg-[#151737]/98 border border-white/10 rounded-lg shadow-2xl z-30 overflow-hidden backdrop-blur-2xl">
+        <div className="absolute top-full mt-2 w-full bg-popover border border-border rounded-lg shadow-xl z-30 overflow-hidden backdrop-blur-2xl">
           {list.map((s) => (
             <button key={s} type="button"
               className="w-full text-left px-5 py-3 text-[13px] font-bold text-foreground/90 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors"

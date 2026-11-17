@@ -90,6 +90,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     activeEntry?.projectId ?? initialPause?.selectedProjectId ?? null
   )
   const [showStopDialog, setShowStopDialog] = useState(false)
+  const [showStartDialog, setShowStartDialog] = useState(false)
   const [showDiscardDialog, setShowDiscardDialog] = useState(false)
   const descriptionRequired = useDescriptionRequired()
   const descriptionRef = useRef<HTMLInputElement>(null)
@@ -134,9 +135,9 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   // Start a new backend entry (play / resume)
   const startMutation = useMutation({
-    mutationFn: () => timeEntries.start(token!, {
+    mutationFn: (projectId?: number) => timeEntries.start(token!, {
       description: description || '',
-      projectId: selectedProjectId ?? undefined,
+      projectId: projectId ?? selectedProjectId ?? undefined,
     }),
     onSuccess: () => {
       clearSessionMutation.mutate()
@@ -263,9 +264,12 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     if (timerState === 'running') {
       pauseMutation.mutate({})
     } else if (timerState === 'paused') {
-      startMutation.mutate()
+      startMutation.mutate(undefined)
+    } else if (selectedProjectId === null) {
+      // Every entry needs a project: ask before the clock starts, not after
+      setShowStartDialog(true)
     } else {
-      startMutation.mutate()
+      startMutation.mutate(undefined)
     }
   }
 
@@ -313,7 +317,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     <>
       {/* Force-project dialog */}
       <Dialog open={showStopDialog} onOpenChange={(v) => { if (!v) setShowStopDialog(false) }}>
-        <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
+        <DialogContent className="sm:max-w-sm border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground text-lg">Which project is this for?</DialogTitle>
           </DialogHeader>
@@ -333,9 +337,27 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         </DialogContent>
       </Dialog>
 
+      {/* Pick a project before starting */}
+      <Dialog open={showStartDialog} onOpenChange={setShowStartDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-lg">What are you working on?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-1 mb-4">Pick a project and the timer starts.</p>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <ProjectSearchList
+              clientList={clientList}
+              projectList={projectList}
+              onSelect={(projectId) => { setSelectedProjectId(projectId); setShowStartDialog(false); startMutation.mutate(projectId) }}
+              disabled={startMutation.isPending}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Discard confirmation */}
       <Dialog open={showDiscardDialog} onOpenChange={(v) => { if (!v) setShowDiscardDialog(false) }}>
-        <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
+        <DialogContent className="sm:max-w-sm border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground text-lg">Discard this timer?</DialogTitle>
           </DialogHeader>
@@ -355,7 +377,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 w-full">
-      <div className="flex-1 min-w-12 sm:min-w-24">
+      <div className="flex-[1.4] min-w-0">
         <DescriptionInput
           ref={descriptionRef}
           required={descriptionRequired}
@@ -365,7 +387,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           onBlur={handleDescriptionBlur}
         />
       </div>
-      <div className="w-24 sm:w-32 lg:w-56 xl:w-72 flex-shrink-0 [&>div>button]:py-2 [&>div>button]:rounded-lg">
+      <div className="flex-1 min-w-0 max-w-72 [&>div>button]:py-2 [&>div>button]:rounded-lg">
         <ProjectPicker
           clientList={clientList}
           projectList={projectList}
@@ -387,24 +409,24 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           isRunning ? 'bg-primary ring-2 ring-primary/30' : 'bg-primary hover:bg-primary/90'
         }`}>
         {isRunning ? (
-          <svg className="w-4 h-4 text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
+          <svg className="w-4 h-4 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
         ) : (
-          <svg className="w-4 h-4 text-foreground ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          <svg className="w-4 h-4 text-primary-foreground ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         )}
       </button>
       {isActive && (
         <>
           <button onClick={handleStop} disabled={isBusy} aria-label="Stop and save" title="Stop and save"
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/10 bg-white/5 text-rose-400 hover:bg-rose-500/15 hover:text-rose-300 transition-all active:scale-95 disabled:opacity-50">
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/10 bg-white/5 text-destructive hover:bg-destructive/15 transition-all active:scale-95 disabled:opacity-50">
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
           </button>
           <button onClick={() => setShowDiscardDialog(true)} disabled={isBusy} aria-label="Discard timer" title="Discard timer"
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-muted-foreground/50 hover:text-rose-300 hover:bg-white/5 transition-colors disabled:opacity-50">
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-muted-foreground/50 hover:text-destructive hover:bg-white/5 transition-colors disabled:opacity-50">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
         </>
       )}
-      <HelpLink slug="timer" className="hidden sm:inline-flex" />
+      <HelpLink slug="timer" className="hidden xl:inline-flex" />
       {dialogs}
     </div>
   )

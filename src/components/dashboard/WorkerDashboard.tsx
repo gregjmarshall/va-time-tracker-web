@@ -21,12 +21,13 @@ dayjs.extend(isoWeek)
 
 function formatDuration(s?: number) {
   if (!s) return '0m'
+  if (s < 60) return '<1m'
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
 function formatTime(iso: string) {
-  return dayjs(iso).format('h:mm A')
+  return dayjs(iso).format('HH:mm')
 }
 
 // ── Weekly Bar Chart ──────────────────────────────────────────────────────────
@@ -315,45 +316,18 @@ export function WorkerDashboard() {
 
               {/* Today's summary */}
               <div className="rounded-lg glass-card p-6">
-                <h2 className="text-sm font-semibold mb-6">Today&apos;s summary</h2>
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="relative w-11 h-11 flex-shrink-0">
-                        {activeEntry?.isRunning && (
-                          <svg className="absolute pointer-events-none"
-                            style={{ inset: -6, width: 'calc(100% + 12px)', height: 'calc(100% + 12px)' }}
-                            viewBox="0 0 52 52">
-                            <circle cx="26" cy="26" r="23" fill="none"
-                              stroke={ACCENT.teal} strokeWidth="2" strokeDasharray="10 5" strokeLinecap="round"
-                              style={{
-                                transformOrigin: '26px 26px',
-                                transform: 'rotate(-90deg)',
-                                animation: 'timer-march 1.2s linear infinite, timer-glow 2s ease-in-out infinite',
-                              }}
-                            />
-                          </svg>
-                        )}
-                        <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.sky}26`, color: ACCENT.sky }}>
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
-                      </div>
-                      <span className="text-sm font-medium text-muted-foreground">Time tracked</span>
-                    </div>
-                    <span className="num text-xl font-semibold">{formatDuration(todaySeconds + liveElapsed)}</span>
+                <h2 className="text-sm font-semibold mb-4">Today</h2>
+                <div className="grid grid-cols-2 divide-x divide-border">
+                  <div className="pr-4">
+                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                      Time tracked
+                      {activeEntry?.isRunning && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" aria-label="Timer running" />}
+                    </p>
+                    <p className="num text-2xl font-medium tracking-tight">{formatDuration(todaySeconds + liveElapsed)}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.teal}26`, color: ACCENT.teal }}>
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                      <span className="text-sm font-medium text-muted-foreground">Entries logged</span>
-                    </div>
-                    <span className="num text-xl font-semibold">{completedEntries.length}</span>
+                  <div className="pl-4">
+                    <p className="text-sm text-muted-foreground mb-1">Entries</p>
+                    <p className="num text-2xl font-medium tracking-tight">{completedEntries.length}</p>
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-white/5">
@@ -385,7 +359,7 @@ export function WorkerDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4 p-4 sm:p-6">
                 {recentClients.slice(0, 4).map(({ client, secs, lastProject }) => (
                   <div key={client.clientId} className="flex items-center gap-4 p-4 rounded-lg border border-white/5 bg-white/[0.02]">
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center text-base font-semibold flex-shrink-0" style={{ background: `${clientColor(client.clientId)}26`, color: clientColor(client.clientId) }}>
+                    <div className="w-9 h-9 rounded-md flex items-center justify-center text-sm font-medium flex-shrink-0 bg-secondary text-muted-foreground">
                       {client.name[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">

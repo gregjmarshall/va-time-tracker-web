@@ -311,7 +311,7 @@ export default function ClientsPage() {
             </button>
           ))}
           <select value={sort} onChange={(e) => setSort(e.target.value as ClientSort)} aria-label="Sort clients"
-            className="ml-auto h-8 rounded-md border border-input bg-transparent px-2 text-xs outline-none [&>option]:bg-[#151737]">
+            className="ml-auto h-8 rounded-md border border-input bg-transparent px-2 text-xs outline-none [&>option]:bg-popover">
             <option value="name">Name A–Z</option>
             <option value="tracked">Recently tracked</option>
           </select>

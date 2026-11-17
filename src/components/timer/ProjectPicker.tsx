@@ -69,7 +69,7 @@ export function ProjectSearchList({ clientList, projectList, onSelect, disabled,
             ))
         ) : clientId === null ? (
           clientsWithProjects.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-8">No projects assigned to you yet</p>
+            ? <p className="text-sm text-muted-foreground text-center py-8">You&apos;re not on any projects yet.<br />Ask your manager to add you.</p>
             : clientsWithProjects.map((c) => (
               <button key={c.clientId} type="button" className={`${rowClass} flex items-center justify-between`}
                 onClick={() => setClientId(c.clientId)}>
@@ -122,8 +122,8 @@ export function ProjectPicker({ clientList, projectList, selectedProjectId, onSe
         <svg className="w-4 h-4 flex-shrink-0 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className={`flex-1 truncate ${selectedProject ? 'text-foreground' : ''}`}>
-          {selectedProject ? `${selectedClient?.name} · ${selectedProject.name}` : placeholder}
+        <span className={`flex-1 truncate ${selectedProject ? 'text-foreground' : ''}`} title={selectedProject ? `${selectedProject.name} · ${selectedClient?.name}` : undefined}>
+          {selectedProject ? <>{selectedProject.name}<span className="text-muted-foreground"> · {selectedClient?.name}</span></> : placeholder}
         </span>
         {selectedProjectId ? (
           <span role="button" aria-label="Clear project" className="text-muted-foreground/40 hover:text-foreground text-xs px-1"
@@ -134,7 +134,7 @@ export function ProjectPicker({ clientList, projectList, selectedProjectId, onSe
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-[#151737]/98 border border-white/10 rounded-lg shadow-2xl backdrop-blur-2xl overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 min-w-full w-72 max-w-[calc(100vw-2rem)] z-50 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
           <ProjectSearchList
             clientList={clientList}
             projectList={projectList}

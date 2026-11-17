@@ -255,7 +255,7 @@ export default function ClientsPage() {
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
+          <h1 className="text-3xl font-normal text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{isTeamMember ? 'Your assigned clients and projects' : 'Manage clients, projects and retainers'}</p>
         </div>
         {!isTeamMember && <Button onClick={() => setCreateClientOpen(true)}>+ New client</Button>}
@@ -277,7 +277,7 @@ export default function ClientsPage() {
       {isLoading && <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>}
 
       {!isLoading && clientList.length === 0 && (
-        <div className="text-center py-16 border border-dashed border-border rounded-xl">
+        <div className="text-center py-16 border border-dashed border-border rounded-lg">
           <p className="text-muted-foreground text-sm mb-3">No clients yet</p>
           {!isTeamMember && <Button onClick={() => setCreateClientOpen(true)}>+ Create your first client</Button>}
         </div>
@@ -289,10 +289,10 @@ export default function ClientsPage() {
             <button
               key={o.label}
               onClick={() => setMineOnly(o.mine)}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+              className={`px-4 py-1.5 rounded-md text-sm font-semibold border transition-all ${
                 mineOnly === o.mine
-                  ? 'bg-primary text-white border-primary shadow-sm shadow-primary/30'
-                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+                  ? 'bg-secondary text-foreground border-foreground/25'
+                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10'
               }`}
             >
               {o.label}
@@ -304,8 +304,8 @@ export default function ClientsPage() {
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {([['all', 'All'], ['retainer', 'Retainer'], ['adhoc', 'Ad hoc'], ['active', `Tracked in last ${ACTIVE_DAYS} days`]] as [ClientFilter, string][]).map(([f, label]) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                filter === f ? 'bg-white/15 text-white border-white/20' : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white'
+              className={`px-3 py-1 rounded-md text-xs font-semibold border transition-all ${
+                filter === f ? 'bg-white/15 text-foreground border-white/20' : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
               }`}>
               {label} <span className="opacity-60">{filterCount(f)}</span>
             </button>
@@ -328,7 +328,7 @@ export default function ClientsPage() {
           const projectRetainers = new Map((detail?.retainerStatus.projectRetainers ?? []).map((r) => [r.projectId, r]))
           const hasRetainer = !!detail?.retainerStatus.retainerHours || projectRetainers.size > 0
           return (
-            <div key={client.clientId} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div key={client.clientId} className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
               {/* Client header */}
               <div className="p-5">
                 <div className="flex items-start justify-between">

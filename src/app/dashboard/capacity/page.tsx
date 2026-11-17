@@ -19,12 +19,12 @@ function fh(h: number) {
 }
 
 function UsageBar({ used, allocated }: { used: number; allocated: number }) {
-  if (allocated <= 0) return <div className="h-1.5 rounded-full bg-white/5" />
+  if (allocated <= 0) return <div className="h-1.5 rounded-[2px] bg-white/5" />
   const over = used > allocated
   const pct = Math.min((used / allocated) * 100, 100)
   return (
-    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-      <div className={`h-full rounded-full ${over ? 'bg-rose-400' : pct >= 85 ? 'bg-amber-400' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
+    <div className="h-1.5 rounded-[2px] bg-white/5 overflow-hidden">
+      <div className={`h-full rounded-[2px] ${over ? 'bg-rose-400' : pct >= 85 ? 'bg-amber-400' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
     </div>
   )
 }
@@ -169,7 +169,7 @@ export default function CapacityPage() {
     <div className="max-w-5xl mx-auto px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Capacity</h1>
+          <h1 className="text-3xl font-normal">Capacity</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Monthly hours allocated, used and remaining per team member</p>
         </div>
         <div className="flex items-center gap-2">
@@ -188,14 +188,14 @@ export default function CapacityPage() {
           { label: 'Remaining', value: totals.allocated - totals.used < 0 ? `${fh(totals.used - totals.allocated)} over` : fh(totals.allocated - totals.used) },
           { label: 'Holiday cover', value: fh(totals.cover), accent: totals.cover > 0 },
         ].map((t) => (
-          <div key={t.label} className="rounded-xl border border-border bg-card p-4">
+          <div key={t.label} className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider">{t.label}</p>
             <p className={`text-xl font-semibold mt-1 tabular-nums ${t.accent ? 'text-amber-400' : ''}`}>{t.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

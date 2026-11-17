@@ -97,7 +97,7 @@ export function PendingInvites() {
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
         Pending invites <span className="num font-normal">({open.length})</span>
       </h2>
-      <div className="rounded-2xl glass-card divide-y divide-white/5">
+      <div className="rounded-lg glass-card divide-y divide-white/5">
         {open.map((inv) => {
           const canCancel = isAdmin(user?.role) || inv.role === 'TEAM_MEMBER'
           return (

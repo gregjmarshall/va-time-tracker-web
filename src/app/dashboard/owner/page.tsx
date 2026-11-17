@@ -53,11 +53,11 @@ export default function OwnerPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Owner</h1>
+        <h1 className="text-3xl font-normal">Owner</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Invite new agencies. Each starts a free trial with the invitee as its Admin.</p>
       </div>
 
-      <section className="rounded-2xl glass-card p-5 space-y-4">
+      <section className="rounded-lg glass-card p-5 space-y-4">
         <h2 className="font-medium">Invite an agency</h2>
         <form onSubmit={(e) => { e.preventDefault(); setCreated(null); create.mutate() }} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <div className="space-y-1.5">
@@ -81,7 +81,7 @@ export default function OwnerPage() {
 
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Agency invites <span className="num font-normal">({list.length})</span></h2>
-        <div className="rounded-2xl glass-card divide-y divide-white/5">
+        <div className="rounded-lg glass-card divide-y divide-white/5">
           {list.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">None yet.</p>}
           {list.map((inv) => (
             <div key={inv.invitationId} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">

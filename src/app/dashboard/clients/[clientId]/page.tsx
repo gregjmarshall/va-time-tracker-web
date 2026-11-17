@@ -32,7 +32,7 @@ function RunningEntry({ entry }: { entry: ClientActivityRunningEntry }) {
         <span className="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75" />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white truncate">{entry.description || '—'}</p>
+        <p className="text-sm font-semibold text-foreground truncate">{entry.description || '—'}</p>
         <p className="text-xs text-muted-foreground">{entry.userName}</p>
       </div>
       <span className="text-xs font-bold text-green-400 flex-shrink-0">
@@ -47,13 +47,13 @@ function ProjectCard({ project }: { project: ClientActivityProject }) {
   const budgetPct = project.budgetHours ? Math.min((totalSeconds / 3600 / project.budgetHours) * 100, 100) : null
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
       <div className="p-5 border-b border-border/50">
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-semibold text-foreground">{project.projectName}</h3>
           <div className="flex items-center gap-2 flex-shrink-0">
             {project.runningEntries.length > 0 && (
-              <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-md">
                 {project.runningEntries.length} live
               </span>
             )}
@@ -65,9 +65,9 @@ function ProjectCard({ project }: { project: ClientActivityProject }) {
           </div>
         </div>
         {budgetPct !== null && (
-          <div className="mt-2 h-1.5 rounded-full bg-white/5 overflow-hidden">
+          <div className="mt-2 h-1.5 rounded-[2px] bg-white/5 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${budgetPct >= 100 ? 'bg-destructive' : budgetPct > 80 ? 'bg-amber-500' : 'bg-primary'}`}
+              className={`h-full rounded-[2px] transition-all ${budgetPct >= 100 ? 'bg-destructive' : budgetPct > 80 ? 'bg-amber-500' : 'bg-primary'}`}
               style={{ width: `${budgetPct}%` }}
             />
           </div>
@@ -134,7 +134,7 @@ export default function ClientActivityPage() {
           </svg>
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="text-3xl font-normal text-foreground">
             {isLoading ? 'Loading…' : data?.clientName}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -170,7 +170,7 @@ export default function ClientActivityPage() {
               )}
               <div className="space-y-3">
                 {emptyProjects.map(p => (
-                  <div key={p.projectId} className="rounded-xl border border-border/50 bg-card/50 px-5 py-4">
+                  <div key={p.projectId} className="rounded-lg border border-border/50 bg-card/50 px-5 py-4">
                     <p className="text-sm font-medium text-muted-foreground">{p.projectName}</p>
                   </div>
                 ))}

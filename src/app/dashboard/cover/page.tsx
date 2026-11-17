@@ -60,10 +60,10 @@ function EndDatePicker({ start, choice, custom, onChoice, onCustom }: {
             key={o.key}
             type="button"
             onClick={() => onChoice(o.key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-all ${
               choice === o.key
-                ? 'bg-primary text-white border-primary'
-                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+                ? 'bg-secondary text-foreground border-foreground/25'
+                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10'
             }`}
           >
             {o.label}
@@ -341,7 +341,7 @@ export default function HolidayCoverPage() {
     <div className="max-w-5xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Holiday cover</h1>
+          <h1 className="text-3xl font-normal">Holiday cover</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {activeCount > 0
               ? `${activeCount} active cover${activeCount === 1 ? '' : 's'} · ${fh(activeHours)} logged so far`
@@ -358,7 +358,7 @@ export default function HolidayCoverPage() {
         </TabsList>
       </Tabs>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

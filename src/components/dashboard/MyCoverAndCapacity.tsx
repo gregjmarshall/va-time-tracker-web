@@ -28,13 +28,13 @@ export function MyCoverCard() {
   if (covers.length === 0) return null
 
   return (
-    <div className="rounded-2xl glass-card p-6 border border-amber-400/20">
+    <div className="rounded-lg glass-card p-6 border border-amber-400/20">
       <h2 className="text-sm font-semibold mb-4" style={{ color: ACCENT.amber }}>Holiday cover</h2>
       <div className="space-y-4">
         {covers.map((c) => (
           <div key={c.coverId} className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold text-white truncate">{c.clientName}</p>
+              <p className="text-[15px] font-semibold text-foreground truncate">{c.clientName}</p>
               <p className="text-[12px] font-medium text-muted-foreground/60 mt-1">{coverDates(c.startDate, c.endDate)}</p>
               {c.note && <p className="text-[12px] text-muted-foreground/50 mt-1 truncate">{c.note}</p>}
             </div>
@@ -62,14 +62,14 @@ export function MyCapacityCard() {
   const over = row.remainingHours < 0
 
   return (
-    <div className="rounded-2xl glass-card p-6">
+    <div className="rounded-lg glass-card p-6">
       <h2 className="text-sm font-semibold mb-4">{dayjs().format('MMMM')} hours</h2>
       <div className="flex items-baseline justify-between mb-3">
         <span className="num text-2xl font-semibold">{fh(row.usedHours)}</span>
         <span className="text-sm font-medium text-muted-foreground/60">of {fh(row.allocatedHours)}</span>
       </div>
-      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-        <div className={`h-full rounded-full ${over ? 'bg-rose-400' : 'bg-primary'}`} style={{ width: `${over ? 100 : pct}%` }} />
+      <div className="h-2 rounded-[2px] bg-white/5 overflow-hidden">
+        <div className={`h-full rounded-[2px] ${over ? 'bg-rose-400' : 'bg-primary'}`} style={{ width: `${over ? 100 : pct}%` }} />
       </div>
       <p className={`text-[12px] font-medium mt-2 ${over ? 'text-rose-400' : 'text-muted-foreground/60'}`}>
         {over ? `${fh(-row.remainingHours)} over` : `${fh(row.remainingHours)} remaining`}

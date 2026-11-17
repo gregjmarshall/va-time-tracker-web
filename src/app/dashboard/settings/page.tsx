@@ -23,10 +23,10 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
-      <h1 className="text-2xl font-bold text-white">Settings</h1>
+      <h1 className="text-3xl font-normal text-foreground">Settings</h1>
       <p className="text-sm text-muted-foreground mt-1">{ws?.name ?? 'Workspace'} settings</p>
 
-      <section className="mt-8 rounded-2xl glass-card p-6">
+      <section className="mt-8 rounded-lg glass-card p-6">
         <h2 className="text-sm font-black uppercase tracking-widest text-muted-foreground/70">Time tracking</h2>
         <label className={`mt-4 flex items-start gap-3 ${isAdmin ? 'cursor-pointer' : ''}`}>
           <input
@@ -37,7 +37,7 @@ export default function SettingsPage() {
             onChange={(e) => update.mutate(e.target.checked)}
           />
           <span>
-            <span className="block text-sm font-semibold text-white">Require a description on every time entry</span>
+            <span className="block text-sm font-semibold text-foreground">Require a description on every time entry</span>
             <span className="block text-xs text-muted-foreground mt-0.5">
               Entries can&apos;t be saved without saying what was worked on. A project is always required.
               {!isAdmin && ' Only Admins can change this.'}

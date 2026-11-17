@@ -80,7 +80,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
         {title} <span className="num font-normal">({count})</span>
       </h2>
-      <div className="rounded-2xl glass-card overflow-x-auto">{children}</div>
+      <div className="rounded-lg glass-card overflow-x-auto">{children}</div>
     </section>
   )
 }
@@ -138,7 +138,7 @@ export default function UsersPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">Team <HelpLink slug="team" /></h1>
+          <h1 className="text-3xl font-normal flex items-center gap-2">Team <HelpLink slug="team" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">Who&apos;s on the team, what they can see, and what they&apos;ve been tracking</p>
         </div>
         <DropdownMenu>
@@ -199,7 +199,7 @@ export default function UsersPage() {
                   <button
                     onClick={() => visibility.mutate(u)}
                     disabled={!u.isActive}
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-all whitespace-nowrap ${
+                    className={`text-xs font-medium px-2.5 py-1 rounded-md border transition-all whitespace-nowrap ${
                       u.fullVisibility
                         ? 'bg-primary/10 border-primary/30 text-primary'
                         : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'

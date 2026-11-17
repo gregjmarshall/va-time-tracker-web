@@ -73,7 +73,7 @@ function chartSvg(buckets: ChartBucket[], g: ChartGranularity) {
   </svg>`
 }
 
-const TH = 'padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#7c5cf6;text-align:left'
+const TH = 'padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9a5a45;text-align:left'
 const TD = 'padding:7px 10px;font-size:11px;color:#333;vertical-align:top'
 const SECTION = 'font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888;margin-bottom:12px'
 
@@ -122,7 +122,7 @@ export function exportReportPdf(win: Window, opts: {
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style></head>
 <body>
-  <div style="background:linear-gradient(135deg,#3a258c 0%,#7c5cf6 100%);padding:32px 40px;color:white;">
+  <div style="background:#1b1a18;border-bottom:4px solid #ee6a4a;padding:32px 40px;color:#f4efe8;">
     <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;opacity:0.7;margin-bottom:8px">Time Report</div>
     <div style="font-size:26px;font-weight:800;margin-bottom:4px">${esc(label)}</div>
     <div style="font-size:13px;opacity:0.75">${esc(subtitle)} · Generated ${dayjs().format('D MMMM YYYY')}</div>

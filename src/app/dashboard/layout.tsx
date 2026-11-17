@@ -147,9 +147,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           'fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex flex-col border-r border-sidebar-border transition-transform duration-200 md:static md:translate-x-0',
           navOpen ? 'translate-x-0' : '-translate-x-full'
         )}
-        style={{ background: 'linear-gradient(180deg, #7c5cf6 0%, #3a258c 35%, #1c1e3d 100%)' }}>
+        style={{ background: 'var(--sidebar)' }}>
         {/* Logo */}
-        <div className="h-20 flex items-center px-6 mb-2">
+        <div className="h-16 flex items-center px-5 mb-3">
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
               {isTimerRunning && (
@@ -157,7 +157,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   style={{ inset: -7, width: 'calc(100% + 14px)', height: 'calc(100% + 14px)' }}
                   viewBox="0 0 54 54">
                   <circle cx="27" cy="27" r="24" fill="none"
-                    stroke="#2dd4bf" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
+                    stroke="var(--primary)" strokeWidth="2.5" strokeDasharray="10 5" strokeLinecap="round"
                     style={{
                       transformOrigin: '27px 27px',
                       transform: 'rotate(-90deg)',
@@ -166,14 +166,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   />
                 </svg>
               )}
-              <PipMark size={40} className={cn('shadow-lg shadow-black/30 rounded-[9px] transition-transform', isTimerRunning && 'scale-95')} />
+              <PipMark size={30} className={cn('transition-transform', isTimerRunning && 'scale-95')} />
             </div>
-            <PipWordmark height={24} className="text-white" />
+            <PipWordmark height={20} className="text-foreground" />
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 space-y-px overflow-y-auto">
           {[...(user.role === 'TEAM_MEMBER' ? workerNav : adminNav), ...(user.isOwner ? ownerNav : [])].map((item) => {
             const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
             return (
@@ -183,18 +183,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 prefetch={'stub' in item && item.stub ? false : undefined}
                 onClick={() => setNavOpen(false)}
                 className={cn(
-                  'flex items-center gap-3.5 px-6 py-4 rounded-[20px] text-[15px] font-bold transition-all group relative overflow-hidden',
+                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors group relative',
                   active
-                    ? 'bg-white/15 text-white shadow-xl backdrop-blur-md'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                    ? 'bg-sidebar-accent text-foreground'
+                    : 'text-sidebar-foreground hover:text-foreground hover:bg-sidebar-accent/60'
                 )}
               >
-                {active && (
-                  <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-coral" />
-                )}
                 <div className={cn(
                   "transition-colors",
-                  active ? "text-white" : "text-white/30 group-hover:text-white/70"
+                  active ? "text-primary" : "text-sidebar-foreground/70 group-hover:text-foreground"
                 )}>
                   {item.icon}
                 </div>
@@ -205,18 +202,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User */}
-        <div className="p-4 border-t border-sidebar-border/30">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-white/5 transition-all group">
-            <Avatar className="h-9 w-9 text-xs shadow-lg">
-              <AvatarFallback className="bg-primary text-white text-[10px] font-bold border border-white/20">{initials}</AvatarFallback>
+        <div className="p-3 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 px-3 py-3 rounded-md hover:bg-sidebar-accent/60 transition-colors group">
+            <Avatar className="h-8 w-8 text-xs">
+              <AvatarFallback className="bg-secondary text-foreground text-[10px] font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white/90 truncate">{displayName}</p>
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{roleLabel(user.role)}</p>
+              <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel(user.role)}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-white/30 hover:text-rose-400 hover:bg-rose-400/10 transition-all"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
               title="Sign out"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -229,11 +226,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main: timer bar on every page, content scrolls beneath it */}
       <div className="flex-1 min-w-0 flex flex-col bg-background">
-        <header className="relative z-30 flex-shrink-0 flex items-center gap-3 border-b border-white/5 bg-background/80 backdrop-blur-md px-4 sm:px-6 py-3">
+        <header className="relative z-30 flex-shrink-0 flex items-center gap-3 border-b border-border bg-background px-4 sm:px-6 py-3">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
-            className="md:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5"
+            className="md:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
             aria-label="Open menu"
             aria-controls="dashboard-nav"
             aria-expanded={navOpen}

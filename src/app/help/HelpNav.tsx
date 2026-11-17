@@ -20,7 +20,7 @@ export function HelpNav({ sections }: { sections: NavSection[] }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls="help-nav-list"
-        className="md:hidden w-full flex items-center justify-between rounded-xl glass-card px-4 py-3 text-sm font-semibold"
+        className="md:hidden w-full flex items-center justify-between rounded-lg glass-card px-4 py-3 text-sm font-semibold"
       >
         <span className="truncate">{current ? current.title : 'All topics'}</span>
         <span className="text-muted-foreground text-xs">{open ? 'Hide' : 'Contents'}</span>
@@ -43,7 +43,7 @@ export function HelpNav({ sections }: { sections: NavSection[] }) {
                       aria-current={active ? 'page' : undefined}
                       className={cn(
                         'relative block rounded-lg px-3 py-1.5 text-sm transition-colors',
-                        active ? 'bg-white/10 text-white font-semibold' : 'text-muted-foreground hover:text-white hover:bg-white/5',
+                        active ? 'bg-white/10 text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
                       )}
                     >
                       {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-coral" />}

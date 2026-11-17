@@ -36,8 +36,8 @@ function BudgetBar({ used, budget }: { used: number; budget?: number | null }) {
         <span className={`num ${over ? 'text-coral font-semibold' : ''}`}>{fh(used)} / {fh(budget)}</span>
         <span className="num text-muted-foreground">{Math.round(pct)}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-        <div className={`h-full rounded-full ${over ? 'bg-coral' : pct >= 80 ? 'bg-sun' : 'bg-teal'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+      <div className="h-1.5 rounded-[2px] bg-white/5 overflow-hidden">
+        <div className={`h-full rounded-[2px] ${over ? 'bg-coral' : pct >= 80 ? 'bg-sun' : 'bg-teal'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
     </div>
   )
@@ -109,7 +109,7 @@ function ManagerProjects() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">Projects <HelpLink slug="projects" /></h1>
+          <h1 className="text-3xl font-normal flex items-center gap-2">Projects <HelpLink slug="projects" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Every project, its budget and who&apos;s on it · <span className="num">{fh(monthTotal)}</span> this month
           </p>
@@ -129,7 +129,7 @@ function ManagerProjects() {
           allLabel="All clients"
           placeholder="Search clients…"
         />
-        <div className="flex rounded-xl border border-white/10 overflow-hidden text-sm">
+        <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm">
           {(['active', 'archived'] as const).map((s) => (
             <button
               key={s}
@@ -142,7 +142,7 @@ function ManagerProjects() {
         </div>
       </div>
 
-      <div className="rounded-2xl glass-card overflow-x-auto">
+      <div className="rounded-lg glass-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-white/5">
             <tr>
@@ -256,7 +256,7 @@ function MyProjects() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">My projects <HelpLink slug="my-projects" /></h1>
+        <h1 className="text-3xl font-normal flex items-center gap-2">My projects <HelpLink slug="my-projects" /></h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           What you can track time to · <span className="num">{fh(monthTotal)}</span> logged this month
         </p>
@@ -270,7 +270,7 @@ function MyProjects() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!isLoading && rows.length === 0 && (
-        <div className="rounded-2xl glass-card p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-lg glass-card p-8 text-center text-sm text-muted-foreground">
           You&apos;re not on any projects yet. Ask your manager to add you.
         </div>
       )}
@@ -278,7 +278,7 @@ function MyProjects() {
         {shown.map((p) => {
           const runningHere = active?.isRunning && active.projectId === p.projectId
           return (
-            <div key={p.projectId} className="rounded-2xl glass-card p-4 flex flex-col gap-3 border-l-2" style={{ borderLeftColor: clientColor(p.clientId) }}>
+            <div key={p.projectId} className="rounded-lg glass-card p-4 flex flex-col gap-3 border-l-2" style={{ borderLeftColor: clientColor(p.clientId) }}>
               <div className="min-w-0">
                 <p className="font-medium truncate">{p.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{p.clientName}</p>

@@ -75,10 +75,10 @@ export default function TimesheetPage() {
   const viewingSomeoneElse = viewedUserId !== undefined && viewedUserId !== user?.userId
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">Timesheet <HelpLink slug="timesheets" /></h1>
+          <h1 className="text-3xl font-normal text-foreground flex items-center gap-2">Timesheet <HelpLink slug="timesheets" /></h1>
           <p className="text-sm text-muted-foreground">Type hours into the grid (1.5, 1:30 or 90m). Timer and manual entries show up here too.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -124,10 +124,10 @@ export default function TimesheetPage() {
         <p className="text-sm text-red-300">{(error as Error).message}</p>
       ) : week ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-white/5 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-white/5 px-4 py-3">
             <div className="flex flex-wrap items-center gap-3 text-sm">
               {viewingSomeoneElse && <span className="font-semibold">{week.userName}</span>}
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLASS[week.status]}`}>{STATUS_LABEL[week.status]}</span>
+              <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${STATUS_CLASS[week.status]}`}>{STATUS_LABEL[week.status]}</span>
               {week.locked && <span className="flex items-center gap-1 text-xs text-muted-foreground"><LockIcon className="size-3" /> Locked</span>}
               <span className="text-muted-foreground">
                 {formatHm(week.totalSeconds) || '0:00'} total · {formatHm(week.billableSeconds) || '0:00'} billable

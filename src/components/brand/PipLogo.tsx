@@ -1,31 +1,21 @@
-import { useId } from 'react'
-
 /** Brand colours used by the logo (kept in sync with --brand-* in globals.css). */
 export const BRAND = {
-  violet: '#7c5cf6',
-  violetDeep: '#4b2fc9',
-  coral: '#ff7a59',
+  coral: '#ee6a4a',
+  ink: '#1c0f0a',
 }
 
 /**
- * The pip mark: a clock face on a violet tile, with the coral "pip" marking time on the rim.
+ * The pip mark: a clock face on a coral tile, with the light "pip" marking time on the rim.
  * Same artwork as src/app/icon.svg.
  */
 export function PipMark({ size = 40, className }: { size?: number; className?: string }) {
-  const gradient = useId()
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" className={className} role="img" aria-label="pip">
-      <defs>
-        <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#9a7dff" />
-          <stop offset="1" stopColor={BRAND.violetDeep} />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill={`url(#${gradient})`} />
-      <circle cx="16" cy="16" r="8.5" fill="none" stroke="#fff" strokeWidth="2.6" />
-      <path d="M16 16l3.6-3.6" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
-      <circle cx="16" cy="16" r="1.6" fill="#fff" />
-      <circle cx="22" cy="10" r="3.6" fill={BRAND.coral} stroke={BRAND.violetDeep} strokeWidth="1.4" />
+      <rect width="32" height="32" rx="7" fill={BRAND.coral} />
+      <circle cx="16" cy="16" r="8.5" fill="none" stroke={BRAND.ink} strokeWidth="2.6" />
+      <path d="M16 16l3.6-3.6" stroke={BRAND.ink} strokeWidth="2.6" strokeLinecap="round" />
+      <circle cx="16" cy="16" r="1.6" fill={BRAND.ink} />
+      <circle cx="22" cy="10" r="3.6" fill="#f4efe8" stroke={BRAND.coral} strokeWidth="1.4" />
     </svg>
   )
 }

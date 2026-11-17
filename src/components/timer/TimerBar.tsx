@@ -90,7 +90,6 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     activeEntry?.projectId ?? initialPause?.selectedProjectId ?? null
   )
   const [showStopDialog, setShowStopDialog] = useState(false)
-  const [showStartDialog, setShowStartDialog] = useState(false)
   const [showDiscardDialog, setShowDiscardDialog] = useState(false)
   const descriptionRequired = useDescriptionRequired()
   const descriptionRef = useRef<HTMLInputElement>(null)
@@ -135,9 +134,9 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
 
   // Start a new backend entry (play / resume)
   const startMutation = useMutation({
-    mutationFn: (projectId?: number) => timeEntries.start(token!, {
+    mutationFn: () => timeEntries.start(token!, {
       description: description || '',
-      projectId: projectId ?? selectedProjectId ?? undefined,
+      projectId: selectedProjectId ?? undefined,
     }),
     onSuccess: () => {
       clearSessionMutation.mutate()
@@ -264,12 +263,9 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
     if (timerState === 'running') {
       pauseMutation.mutate({})
     } else if (timerState === 'paused') {
-      startMutation.mutate(undefined)
-    } else if (selectedProjectId === null) {
-      // Every entry needs a project: ask before the clock starts, not after
-      setShowStartDialog(true)
+      startMutation.mutate()
     } else {
-      startMutation.mutate(undefined)
+      startMutation.mutate()
     }
   }
 
@@ -332,24 +328,6 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
               projectList={projectList}
               onSelect={(projectId) => finalStopMutation.mutate(projectId)}
               disabled={finalStopMutation.isPending}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Pick a project before starting */}
-      <Dialog open={showStartDialog} onOpenChange={setShowStartDialog}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-foreground text-lg">What are you working on?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground -mt-1 mb-4">Pick a project and the timer starts.</p>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <ProjectSearchList
-              clientList={clientList}
-              projectList={projectList}
-              onSelect={(projectId) => { setSelectedProjectId(projectId); setShowStartDialog(false); startMutation.mutate(projectId) }}
-              disabled={startMutation.isPending}
             />
           </div>
         </DialogContent>

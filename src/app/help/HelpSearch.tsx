@@ -80,7 +80,7 @@ export function HelpSearch({ items }: { items: SearchItem[] }) {
         className="w-full h-10 rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary/50"
       />
       {open && query.trim() && (
-        <ul id={listId} role="listbox" className="absolute left-0 right-0 sm:right-auto sm:w-full top-12 z-40 rounded-lg border border-white/10 bg-[#1a1d3d] p-1 shadow-xl max-h-[70vh] overflow-y-auto min-w-[16rem]">
+        <ul id={listId} role="listbox" className="absolute left-0 right-0 sm:right-auto sm:w-full top-12 z-40 rounded-lg border border-white/10 bg-popover p-1 shadow-xl max-h-[70vh] overflow-y-auto min-w-[16rem]">
           {results.length === 0 && <li className="px-3 py-3 text-sm text-muted-foreground">No results for “{query}”</li>}
           {results.map((r, i) => (
             <li key={r.href} role="option" aria-selected={i === active}>

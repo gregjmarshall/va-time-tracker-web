@@ -14,7 +14,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { ClientResponse, ProjectResponse, RetainerResponse } from '@/lib/types'
 import { HelpLink } from '@/components/help/HelpLink'
 
-const selectClass = 'w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-primary/50 [&>option]:bg-[#151737]'
+const selectClass = 'w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-primary/50 [&>option]:bg-popover'
 
 /** "YYYY-MM" for 24 months back to 12 ahead, newest last. */
 function monthOptions() {

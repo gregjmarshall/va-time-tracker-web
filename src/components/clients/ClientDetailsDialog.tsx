@@ -11,7 +11,7 @@ import { clientBilling, clients } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { isAdmin, PAYMENT_METHOD_LABELS, type ClientBillingResponse, type ClientResponse, type PaymentMethod, type RateType } from '@/lib/types'
 
-const selectClass = 'w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-primary/50 [&>option]:bg-[#151737]'
+const selectClass = 'w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus:border-primary/50 [&>option]:bg-popover'
 
 /** Edits a client's name, contact and start date; Admins also set the rate and payment method. */
 export function ClientDetailsDialog({ client, billing, onClose }: {

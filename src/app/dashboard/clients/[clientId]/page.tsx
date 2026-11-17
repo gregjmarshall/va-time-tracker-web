@@ -10,6 +10,7 @@ import type { ClientActivityProject, ClientActivityRunningEntry } from '@/lib/ty
 
 function formatDuration(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+  if (s > 0 && s < 60) return '<1m'
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
@@ -87,7 +88,7 @@ function ProjectCard({ project }: { project: ClientActivityProject }) {
           <div key={e.entryId} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/3 transition-colors">
             <div className="flex-1 min-w-0">
               <p className="text-sm text-foreground truncate">{e.description || '—'}</p>
-              <p className="text-xs text-muted-foreground">{e.userName} · {dayjs(e.startedAt).format('D MMM, h:mm A')}</p>
+              <p className="text-xs text-muted-foreground">{e.userName} · {dayjs(e.startedAt).format('D MMM, HH:mm')}</p>
             </div>
             <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums">{formatDuration(e.durationSeconds)}</span>
           </div>

@@ -114,13 +114,13 @@ export function TimesheetGrid({ week, viewedUserId, queryKey }: { week: Timeshee
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[760px] text-sm">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <table className="w-full min-w-[620px] text-sm">
           <thead>
             <tr className="border-b border-border text-xs text-muted-foreground">
-              <th className="text-left font-medium px-3 py-2">Project</th>
+              <th className="text-left font-medium px-3 py-2 sticky left-0 z-10 bg-card">Project</th>
               {week.days.map((d) => (
-                <th key={d} className={`font-medium px-1 py-2 w-[78px] ${dayjs(d).isSame(dayjs(), 'day') ? 'text-primary' : ''}`}>
+                <th key={d} className={`font-medium px-0.5 py-2 w-[62px] ${dayjs(d).isSame(dayjs(), 'day') ? 'text-primary' : ''}`}>
                   <div>{dayjs(d).format('ddd')}</div>
                   <div className="text-[11px] opacity-70">{dayjs(d).format('D MMM')}</div>
                 </th>
@@ -138,9 +138,9 @@ export function TimesheetGrid({ week, viewedUserId, queryKey }: { week: Timeshee
             )}
             {rows.map((row) => (
               <tr key={row.projectId ?? 'none'} className="border-b border-border last:border-0">
-                <td className="px-3 py-2 align-middle">
-                  <div className="font-medium text-foreground truncate max-w-[220px]">{row.projectName}</div>
-                  {row.clientName && <div className="text-xs text-muted-foreground truncate max-w-[220px]">{row.clientName}</div>}
+                <td className="px-3 py-2 align-middle sticky left-0 z-10 bg-card">
+                  <div className="font-medium text-foreground truncate max-w-[180px]">{row.projectName}</div>
+                  {row.clientName && <div className="text-xs text-muted-foreground truncate max-w-[180px]">{row.clientName}</div>}
                 </td>
                 {row.cells.map((cell) => {
                   const key = `${row.projectId}:${cell.date}`
@@ -152,7 +152,7 @@ export function TimesheetGrid({ week, viewedUserId, queryKey }: { week: Timeshee
                     cell.totalSeconds > 0 && !cell.isBillable ? 'Non-billable' : '',
                   ].filter(Boolean).join('\n')
                   return (
-                    <td key={cell.date} className="px-1 py-1.5 text-center align-middle">
+                    <td key={cell.date} className="px-0.5 py-1.5 text-center align-middle">
                       <div className="relative group/cell">
                         <input
                           aria-label={`${row.projectName} ${dayjs(cell.date).format('ddd D MMM')}`}
@@ -192,7 +192,7 @@ export function TimesheetGrid({ week, viewedUserId, queryKey }: { week: Timeshee
           </tbody>
           <tfoot>
             <tr className="border-t border-border text-xs">
-              <td className="px-3 py-2 text-muted-foreground">Daily total</td>
+              <td className="px-3 py-2 text-muted-foreground sticky left-0 z-10 bg-card">Daily total</td>
               {week.dayTotals.map((t, i) => (
                 <td key={week.days[i]} className="px-1 py-2 text-center tabular-nums">{formatHm(t) || '–'}</td>
               ))}

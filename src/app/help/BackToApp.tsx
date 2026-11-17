@@ -3,11 +3,29 @@
 import Link from 'next/link'
 import { useAuthHydrated, useAuthStore } from '@/stores/auth'
 
-/** "Back to pip" for signed-in users, "Sign in" for everyone else. */
-export function BackToApp() {
+function useSignedIn() {
   const hydrated = useAuthHydrated()
   const token = useAuthStore((s) => s.token)
-  const signedIn = hydrated && !!token
+  return hydrated && !!token
+}
+
+/** pip logo: back to the app (dashboard when signed in, sign-in otherwise). */
+export function AppLogoLink({ children }: { children: React.ReactNode }) {
+  const signedIn = useSignedIn()
+  return (
+    <Link
+      href={signedIn ? '/dashboard' : '/login'}
+      className="flex items-center gap-2.5 flex-shrink-0"
+      aria-label={signedIn ? 'Back to pip' : 'Sign in to pip'}
+    >
+      {children}
+    </Link>
+  )
+}
+
+/** "Back to pip" for signed-in users, "Sign in" for everyone else. */
+export function BackToApp() {
+  const signedIn = useSignedIn()
   return (
     <Link
       href={signedIn ? '/dashboard' : '/login'}

@@ -5,7 +5,7 @@ import { allDocs } from './docs'
 import { HELP_SECTIONS } from './sections'
 import { HelpNav, type NavSection } from './HelpNav'
 import { HelpSearch, type SearchItem } from './HelpSearch'
-import { BackToApp } from './BackToApp'
+import { AppLogoLink, BackToApp } from './BackToApp'
 
 export const metadata: Metadata = {
   title: { default: 'Help · pip', template: '%s · pip help' },
@@ -29,11 +29,15 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-dvh bg-background">
       <header className="sticky top-0 z-30 border-b border-white/5 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
-          <Link href="/help" className="flex items-center gap-2.5 flex-shrink-0" aria-label="pip help home">
-            <PipMark size={30} className="rounded-[7px]" />
-            <PipWordmark height={18} className="text-foreground hidden sm:block" />
-            <span className="text-sm font-semibold text-muted-foreground">Help</span>
-          </Link>
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <AppLogoLink>
+              <PipMark size={30} className="rounded-[7px]" />
+              <PipWordmark height={18} className="text-foreground hidden sm:block" />
+            </AppLogoLink>
+            <Link href="/help" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
+              Help
+            </Link>
+          </div>
           <div className="flex-1 min-w-0 flex justify-end sm:justify-center">
             <HelpSearch items={index} />
           </div>

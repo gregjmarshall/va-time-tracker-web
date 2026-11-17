@@ -8,6 +8,7 @@ import type {
   MemberAccess,
   ProjectOverview,
   AuditEvent,
+  AccessRequest,
   ClientWithRetainerResponse,
   ClientBillingResponse,
   PaymentMethod,
@@ -331,6 +332,24 @@ export const users = {
     req<UserResponse>('PUT', `/api/users/${userId}`, { token, body }),
   deactivate: (token: string, userId: number) =>
     req<void>('DELETE', `/api/users/${userId}`, { token }),
+}
+
+// Access requests: a team member asking to be put on projects
+export const accessRequests = {
+  /** Asking again while one is open returns the open one */
+  create: (token: string, message?: string) =>
+    req<AccessRequest>('POST', '/api/access-requests', { token, body: { message: message ?? null } }),
+  /** The caller's open request, or undefined */
+  mine: (token: string) => req<AccessRequest | undefined>('GET', '/api/access-requests/mine', { token }),
+  /** Open requests in the workspace (Managers/Admins) */
+  list: (token: string) => req<AccessRequest[]>('GET', '/api/access-requests', { token }),
+  dismiss: (token: string, userId: number) =>
+    req<void>('POST', `/api/access-requests/user/${userId}/dismiss`, { token }),
+}
+
+export const me = {
+  /** Recent changes others made to what you can access, newest first */
+  updates: (token: string) => req<AuditEvent[]>('GET', '/api/me/updates', { token }),
 }
 
 // Client team access

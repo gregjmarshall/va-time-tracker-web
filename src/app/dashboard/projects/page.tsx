@@ -18,6 +18,7 @@ import { clients as clientsApi, projects as projectsApi, timeEntries, timerSessi
 import { clientColor } from '@/lib/colors'
 import { useAuthStore } from '@/stores/auth'
 import { isManagerial, type ProjectOverview, type UserResponse } from '@/lib/types'
+import { RequestAccessButton } from '@/components/onboarding/RequestAccess'
 import { HelpLink } from '@/components/help/HelpLink'
 
 dayjs.extend(relativeTime)
@@ -270,8 +271,9 @@ function MyProjects() {
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!isLoading && rows.length === 0 && (
-        <div className="rounded-lg glass-card p-8 text-center text-sm text-muted-foreground">
-          You&apos;re not on any projects yet. Ask your manager to add you.
+        <div className="rounded-lg glass-card p-8 text-center text-sm text-muted-foreground space-y-4">
+          <p>You&apos;re not on any projects yet, so there&apos;s nothing to track time to.</p>
+          <RequestAccessButton className="mx-auto" />
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

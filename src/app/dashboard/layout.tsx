@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { roleLabel } from '@/lib/types'
 import { PipMark, PipWordmark } from '@/components/brand/PipLogo'
 import { GlobalTimer } from '@/components/timer/GlobalTimer'
+import { useOpenAccessRequests } from '@/components/onboarding/AccessRequestsPanel'
 
 const workerNav = [
   {
@@ -124,6 +125,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     refetchInterval: 30_000,
   })
 
+  // Badge on Team: people waiting to be put on projects
+  const managerial = user?.role === 'ADMIN' || user?.role === 'MANAGER'
+  const { data: openRequests = [] } = useOpenAccessRequests(managerial)
+
   if (!mounted || !token || !user) return null
 
   const initials = [user.firstName?.[0], user.lastName?.[0]].filter(Boolean).join('') || user.email[0].toUpperCase()
@@ -196,6 +201,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   {item.icon}
                 </div>
                 {item.label}
+                {item.href === '/dashboard/users' && openRequests.length > 0 && (
+                  <span className="num ml-auto min-w-5 h-5 px-1.5 rounded-md bg-primary text-primary-foreground text-[11px] flex items-center justify-center"
+                    aria-label={`${openRequests.length} waiting for access`}>{openRequests.length}</span>
+                )}
               </Link>
             )
           })}

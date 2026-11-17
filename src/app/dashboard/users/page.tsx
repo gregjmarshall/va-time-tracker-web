@@ -16,6 +16,7 @@ import { users } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { isAdmin, isManagerial, roleLabel, type Role, type UserResponse } from '@/lib/types'
 import { AccessDialog } from '@/components/team/AccessDialog'
+import { AccessRequestsPanel } from '@/components/onboarding/AccessRequestsPanel'
 import { AddUserDialog, EditMemberDialog, useInvalidateUsers, useToggleActive } from '@/components/team/MemberDialogs'
 import { InviteDialog, PendingInvites } from '@/components/team/InviteDialogs'
 import { canManage, memberInitials, memberName } from '@/components/team/member'
@@ -154,6 +155,8 @@ export default function UsersPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <AccessRequestsPanel members={userList.filter((u) => u.isActive)} onGiveAccess={setAccessFor} />
 
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-48 max-w-sm">

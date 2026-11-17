@@ -58,29 +58,33 @@ export function MyCapacityCard() {
   })
   const row = data?.rows[0]
   if (!row || (row.allocatedHours === 0 && row.usedHours === 0 && row.coverHours === 0)) return null
-  const pct = row.allocatedHours > 0 ? Math.min((row.usedHours / row.allocatedHours) * 100, 100) : 0
-  const over = row.remainingHours < 0
+  // No allocation yet means "nothing planned", not "0h allowed": show the hours, never "over".
+  const allocated = row.allocatedHours > 0
+  const pct = allocated ? Math.min((row.usedHours / row.allocatedHours) * 100, 100) : 0
+  const over = allocated && row.remainingHours < 0
 
   return (
     <div className="rounded-lg glass-card p-6">
       <h2 className="text-sm font-semibold mb-4">{dayjs().format('MMMM')} hours</h2>
       <div className="flex items-baseline justify-between mb-3">
         <span className="num text-2xl font-semibold">{fh(row.usedHours)}</span>
-        <span className="text-sm font-medium text-muted-foreground/60">of {fh(row.allocatedHours)}</span>
+        {allocated && <span className="text-sm font-medium text-muted-foreground/60">of {fh(row.allocatedHours)}</span>}
       </div>
-      <div className="h-2 rounded-[2px] bg-white/5 overflow-hidden">
-        <div className={`h-full rounded-[2px] ${over ? 'bg-rose-400' : 'bg-primary'}`} style={{ width: `${over ? 100 : pct}%` }} />
-      </div>
-      <p className={`text-[12px] font-medium mt-2 ${over ? 'text-rose-400' : 'text-muted-foreground/60'}`}>
-        {over ? `${fh(-row.remainingHours)} over` : `${fh(row.remainingHours)} remaining`}
-        {row.coverHours > 0 && <span className="text-amber-400"> · {fh(row.coverHours)} holiday cover</span>}
+      {allocated && (
+        <div className="h-2 rounded-[2px] bg-white/5 overflow-hidden">
+          <div className={`h-full rounded-[2px] ${over ? 'bg-destructive' : 'bg-primary'}`} style={{ width: `${over ? 100 : pct}%` }} />
+        </div>
+      )}
+      <p className={`text-[12px] font-medium mt-2 ${over ? 'text-destructive' : 'text-muted-foreground/60'}`}>
+        {!allocated ? 'tracked this month · no hours planned for you yet' : over ? `${fh(-row.remainingHours)} over` : `${fh(row.remainingHours)} remaining`}
+        {row.coverHours > 0 && <span className="text-sun"> · {fh(row.coverHours)} holiday cover</span>}
       </p>
       <div className="mt-6 space-y-3">
         {row.clients.map((c) => (
           <div key={c.clientId ?? 'none'} className="flex items-center justify-between text-[13px]">
             <span className="font-medium text-muted-foreground/80 truncate">{c.clientName}</span>
             <span className="font-mono tabular-nums text-muted-foreground/70 flex-shrink-0">
-              {c.coverHours > 0 && <span className="text-amber-400 mr-2">+{fh(c.coverHours)} cover</span>}
+              {c.coverHours > 0 && <span className="text-sun mr-2">+{fh(c.coverHours)} cover</span>}
               {fh(c.usedHours)}{c.allocatedHours > 0 ? ` / ${fh(c.allocatedHours)}` : ''}
             </span>
           </div>

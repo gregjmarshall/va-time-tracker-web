@@ -104,7 +104,7 @@ export function AdminDashboard() {
   const periodLabel = PERIODS.find((p) => p.key === period)!.label.toLowerCase()
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="page">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl">{greeting}, {firstName}</h1>

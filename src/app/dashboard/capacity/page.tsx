@@ -166,10 +166,10 @@ export default function CapacityPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="page">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-normal">Capacity</h1>
+          <h1 className="text-3xl font-medium">Capacity</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Monthly hours allocated, used and remaining per team member</p>
         </div>
         <div className="flex items-center gap-2">

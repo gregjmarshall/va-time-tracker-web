@@ -107,10 +107,10 @@ function ManagerProjects() {
   const TD = 'px-3 md:px-4 py-3 align-middle'
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="page">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-normal flex items-center gap-2">Projects <HelpLink slug="projects" /></h1>
+          <h1 className="text-3xl font-medium flex items-center gap-2">Projects <HelpLink slug="projects" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Every project, its budget and who&apos;s on it · <span className="num">{fh(monthTotal)}</span> this month
           </p>
@@ -255,9 +255,9 @@ function MyProjects() {
   const monthTotal = rows.reduce((s, p) => s + Number(p.hoursThisMonth), 0)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="page">
       <div className="mb-6">
-        <h1 className="text-3xl font-normal flex items-center gap-2">My projects <HelpLink slug="my-projects" /></h1>
+        <h1 className="text-3xl font-medium flex items-center gap-2">My projects <HelpLink slug="my-projects" /></h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           What you can track time to · <span className="num">{fh(monthTotal)}</span> logged this month
         </p>

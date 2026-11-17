@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
               <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <h1 className="text-3xl font-normal text-foreground">New password</h1>
+          <h1 className="text-3xl font-medium text-foreground">New password</h1>
           <p className="text-sm text-muted-foreground mt-1">Choose something you&apos;ll remember</p>
         </div>
 

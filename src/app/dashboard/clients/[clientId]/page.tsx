@@ -124,7 +124,7 @@ export default function ClientActivityPage() {
   const liveCount = data?.projects.reduce((s, p) => s + p.runningEntries.length, 0) ?? 0
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="page">
       <div className="flex items-center gap-3 mb-2">
         <button
           onClick={() => router.back()}
@@ -135,7 +135,7 @@ export default function ClientActivityPage() {
           </svg>
         </button>
         <div>
-          <h1 className="text-3xl font-normal text-foreground">
+          <h1 className="text-3xl font-medium text-foreground">
             {isLoading ? 'Loading…' : data?.clientName}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">

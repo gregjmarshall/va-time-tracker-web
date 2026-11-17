@@ -188,10 +188,10 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="page">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-3xl font-normal text-foreground">{canManage ? 'Reports' : 'My Time'}</h1>
+          <h1 className="text-3xl font-medium text-foreground">{canManage ? 'Reports' : 'My Time'}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
         {rows.length > 0 && (

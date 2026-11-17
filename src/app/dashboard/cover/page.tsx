@@ -338,10 +338,10 @@ export default function HolidayCoverPage() {
   const activeHours = current.filter((c) => c.status === 'ACTIVE').reduce((s, c) => s + c.hoursLogged, 0)
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="page">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-normal">Holiday cover</h1>
+          <h1 className="text-3xl font-medium">Holiday cover</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {activeCount > 0
               ? `${activeCount} active cover${activeCount === 1 ? '' : 's'} · ${fh(activeHours)} logged so far`

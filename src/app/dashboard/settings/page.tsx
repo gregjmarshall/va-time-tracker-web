@@ -22,8 +22,8 @@ export default function SettingsPage() {
   })
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
-      <h1 className="text-3xl font-normal text-foreground">Settings</h1>
+    <div className="page page-narrow">
+      <h1 className="text-3xl font-medium text-foreground">Settings</h1>
       <p className="text-sm text-muted-foreground mt-1">{ws?.name ?? 'Workspace'} settings</p>
 
       <section className="mt-8 rounded-lg glass-card p-6">

@@ -51,9 +51,9 @@ export default function OwnerPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className="page page-narrow space-y-8">
       <div>
-        <h1 className="text-3xl font-normal">Owner</h1>
+        <h1 className="text-3xl font-medium">Owner</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Invite new agencies. Each starts a free trial with the invitee as its Admin.</p>
       </div>
 

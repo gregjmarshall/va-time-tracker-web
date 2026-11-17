@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { Instrument_Sans, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google'
+import { Instrument_Sans, Newsreader, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/providers/providers'
 
 const ui = Instrument_Sans({ variable: '--font-ui', subsets: ['latin'] })
-const serif = Instrument_Serif({ variable: '--font-serif', subsets: ['latin'], weight: '400' })
+const serif = Newsreader({ variable: '--font-serif', subsets: ['latin'], axes: ['opsz'] })
 const num = IBM_Plex_Mono({ variable: '--font-num', subsets: ['latin'], weight: ['400', '500'] })
 
 export const metadata: Metadata = {

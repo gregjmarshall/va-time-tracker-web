@@ -9,7 +9,7 @@ const Chevron = ({ dir }: { dir: 'right' | 'left' | 'down' }) => (
   </svg>
 )
 
-const rowClass = 'w-full text-left px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/5 hover:text-white border-b border-white/5 last:border-0 transition-colors disabled:opacity-50'
+const rowClass = 'w-full text-left px-4 py-3 text-sm font-semibold text-foreground/80 hover:bg-white/5 hover:text-foreground border-b border-white/5 last:border-0 transition-colors disabled:opacity-50'
 
 /**
  * Client → project chooser. With no search it drills down from client to project. Typing searches
@@ -46,7 +46,7 @@ export function ProjectSearchList({ clientList, projectList, onSelect, disabled,
         <input autoFocus={autoFocus}
           placeholder={clientId ? 'Search projects…' : 'Search clients or projects…'}
           value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder:text-muted-foreground/50 outline-none focus:border-primary/50"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50"
         />
       </div>
       <div className="max-h-60 overflow-y-auto">
@@ -117,16 +117,16 @@ export function ProjectPicker({ clientList, projectList, selectedProjectId, onSe
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/8 transition-all w-full text-left"
+        className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/8 transition-all w-full text-left"
       >
         <svg className="w-4 h-4 flex-shrink-0 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className={`flex-1 truncate ${selectedProject ? 'text-white' : ''}`}>
+        <span className={`flex-1 truncate ${selectedProject ? 'text-foreground' : ''}`}>
           {selectedProject ? `${selectedClient?.name} · ${selectedProject.name}` : placeholder}
         </span>
         {selectedProjectId ? (
-          <span role="button" aria-label="Clear project" className="text-muted-foreground/40 hover:text-white text-xs px-1"
+          <span role="button" aria-label="Clear project" className="text-muted-foreground/40 hover:text-foreground text-xs px-1"
             onMouseDown={(e) => { e.stopPropagation(); onSelect(null) }}>✕</span>
         ) : (
           <Chevron dir="down" />
@@ -134,7 +134,7 @@ export function ProjectPicker({ clientList, projectList, selectedProjectId, onSe
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-[#151737]/98 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-2xl overflow-hidden">
+        <div className="absolute top-full mt-2 left-0 right-0 z-50 bg-[#151737]/98 border border-white/10 rounded-lg shadow-2xl backdrop-blur-2xl overflow-hidden">
           <ProjectSearchList
             clientList={clientList}
             projectList={projectList}

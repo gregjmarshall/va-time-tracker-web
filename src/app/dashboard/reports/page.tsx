@@ -56,8 +56,8 @@ function resolveRange(key: RangeKey, customFrom: string, customTo: string) {
   }
 }
 
-const SELECT_CLASS = 'px-3 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer'
-const DATE_CLASS = 'px-3 py-1.5 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 [color-scheme:dark]'
+const SELECT_CLASS = 'px-3 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer'
+const DATE_CLASS = 'px-3 py-1.5 rounded-lg text-sm font-semibold border border-white/10 bg-white/5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 [color-scheme:dark]'
 const PAGE_SIZE = 50
 const EXPORT_SIZE = 100_000
 
@@ -191,7 +191,7 @@ export default function ReportsPage() {
     <div className="max-w-5xl mx-auto px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{canManage ? 'Reports' : 'My Time'}</h1>
+          <h1 className="text-3xl font-normal text-foreground">{canManage ? 'Reports' : 'My Time'}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
         {rows.length > 0 && (
@@ -200,7 +200,7 @@ export default function ReportsPage() {
               onClick={() => runExport('csv')}
               disabled={exporting !== null}
               title="Every entry in the current filters, one row each"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/10 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -211,7 +211,7 @@ export default function ReportsPage() {
               onClick={() => runExport('pdf')}
               disabled={exporting !== null}
               title="Chart, summary and every entry in the current filters"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 transition-all shadow-sm shadow-primary/30 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -228,10 +228,10 @@ export default function ReportsPage() {
           <button
             key={r.key}
             onClick={() => resetting(setRangeKey)(r.key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+            className={`px-4 py-1.5 rounded-md text-sm font-semibold border transition-all ${
               rangeKey === r.key
-                ? 'bg-primary text-white border-primary shadow-sm shadow-primary/30'
-                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+                ? 'bg-secondary text-foreground border-foreground/25'
+                : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10'
             }`}
           >
             {r.label}
@@ -246,10 +246,10 @@ export default function ReportsPage() {
             }
             resetting(setRangeKey)('custom')
           }}
-          className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+          className={`px-4 py-1.5 rounded-md text-sm font-semibold border transition-all ${
             rangeKey === 'custom'
-              ? 'bg-primary text-white border-primary shadow-sm shadow-primary/30'
-              : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:bg-white/10'
+              ? 'bg-secondary text-foreground border-foreground/25'
+              : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10'
           }`}
         >
           Custom…
@@ -317,7 +317,7 @@ export default function ReportsPage() {
           ) : (
             <div className="space-y-6">
               {summary?.chart && summary.chart.buckets.length > 0 && (
-                <div className="rounded-xl border border-border bg-card shadow-sm p-5">
+                <div className="rounded-lg border border-border bg-card shadow-sm p-5">
                   <div className="flex flex-wrap gap-x-8 gap-y-2 mb-4">
                     <div><p className="text-xs text-muted-foreground">Total</p><p className="num text-xl font-semibold">{fh(totalRounded)}</p></div>
                     <div><p className="text-xs text-muted-foreground">Billable</p><p className="num text-xl font-semibold text-teal">{fh(totalBillable)}</p></div>
@@ -326,7 +326,7 @@ export default function ReportsPage() {
                   <HoursChart buckets={summary.chart.buckets} granularity={summary.chart.granularity} />
                 </div>
               )}
-              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -372,7 +372,7 @@ export default function ReportsPage() {
             <div className="text-center py-12 text-muted-foreground text-sm">Loading…</div>
           ) : (
             <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
+              <div className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

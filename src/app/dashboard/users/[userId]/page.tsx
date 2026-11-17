@@ -47,7 +47,7 @@ const hoursOf = (s?: number | null) => (s ?? 0) / 3600
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl glass-card px-4 py-3">
+    <div className="rounded-lg glass-card px-4 py-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="num text-xl font-semibold mt-0.5">{value}</p>
       {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
@@ -154,7 +154,7 @@ export default function MemberPage() {
             <AvatarFallback className="bg-primary/15 text-primary font-semibold">{memberInitials(member)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold truncate">{memberName(member)}</h1>
+            <h1 className="text-3xl font-normal truncate">{memberName(member)}</h1>
             <p className="text-sm text-muted-foreground truncate">{member.email}</p>
             <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
               <Badge variant="secondary" className="text-xs">{roleLabel(member.role)}</Badge>
@@ -188,8 +188,8 @@ export default function MemberPage() {
           <button
             key={p.value}
             onClick={() => setPeriod(p.value)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-              period === p.value ? 'bg-primary text-primary-foreground border-primary' : 'border-white/10 bg-white/5 text-muted-foreground hover:text-foreground'
+            className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-all ${
+              period === p.value ? 'bg-secondary text-foreground border-foreground/25' : 'border-white/10 bg-white/5 text-muted-foreground hover:text-foreground'
             }`}
           >
             {p.label}
@@ -205,11 +205,11 @@ export default function MemberPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 rounded-2xl glass-card p-5">
+        <div className="lg:col-span-2 rounded-lg glass-card p-5">
           <h2 className="text-sm font-semibold mb-4">Billable vs non-billable</h2>
           {summary?.chart ? <HoursChart buckets={summary.chart.buckets} granularity={summary.chart.granularity} /> : <p className="text-sm text-muted-foreground">Loading…</p>}
         </div>
-        <div className="rounded-2xl glass-card p-5">
+        <div className="rounded-lg glass-card p-5">
           <h2 className="text-sm font-semibold mb-4">Hours by client</h2>
           {byClient.length === 0 && <p className="text-sm text-muted-foreground">No time in this period.</p>}
           <div className="space-y-3">
@@ -219,8 +219,8 @@ export default function MemberPage() {
                   <span className="truncate">{c.name}</span>
                   <span className="num text-muted-foreground">{fh(c.hours)}</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${maxClient ? (c.hours / maxClient) * 100 : 0}%`, background: clientColor(c.clientId) }} />
+                <div className="h-1.5 rounded-[2px] bg-white/5 overflow-hidden">
+                  <div className="h-full rounded-[2px]" style={{ width: `${maxClient ? (c.hours / maxClient) * 100 : 0}%`, background: clientColor(c.clientId) }} />
                 </div>
               </div>
             ))}
@@ -229,7 +229,7 @@ export default function MemberPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`${isTeamMember ? 'lg:col-span-2' : 'lg:col-span-3'} rounded-2xl glass-card p-5`}>
+        <div className={`${isTeamMember ? 'lg:col-span-2' : 'lg:col-span-3'} rounded-lg glass-card p-5`}>
           <h2 className="text-sm font-semibold mb-3">Recent entries</h2>
           {recent && recent.entries.length === 0 && <p className="text-sm text-muted-foreground">No entries in this period.</p>}
           <ul className="divide-y divide-white/5">
@@ -257,7 +257,7 @@ export default function MemberPage() {
         </div>
 
         {isTeamMember && (
-          <div className="rounded-2xl glass-card p-5">
+          <div className="rounded-lg glass-card p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold">Access</h2>
               <span className="text-xs text-muted-foreground">{member.fullVisibility ? 'Sees all clients' : 'Sees only this access'}</span>
@@ -287,7 +287,7 @@ export default function MemberPage() {
         )}
       </div>
 
-      <div className="rounded-2xl glass-card p-5">
+      <div className="rounded-lg glass-card p-5">
         <h2 className="text-sm font-semibold mb-4">History</h2>
         <HistoryList events={history} isLoading={historyLoading} empty="No changes recorded yet. Role, access and status changes from now on will show here." />
       </div>

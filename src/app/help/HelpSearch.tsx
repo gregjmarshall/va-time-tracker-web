@@ -77,10 +77,10 @@ export function HelpSearch({ items }: { items: SearchItem[] }) {
           if (e.key === 'Enter' && results[active]) go(results[active].href)
           if (e.key === 'Escape') { setOpen(false); inputRef.current?.blur() }
         }}
-        className="w-full h-10 rounded-xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary/50"
+        className="w-full h-10 rounded-lg border border-white/10 bg-white/5 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-primary/50"
       />
       {open && query.trim() && (
-        <ul id={listId} role="listbox" className="absolute left-0 right-0 sm:right-auto sm:w-full top-12 z-40 rounded-xl border border-white/10 bg-[#1a1d3d] p-1 shadow-xl max-h-[70vh] overflow-y-auto min-w-[16rem]">
+        <ul id={listId} role="listbox" className="absolute left-0 right-0 sm:right-auto sm:w-full top-12 z-40 rounded-lg border border-white/10 bg-[#1a1d3d] p-1 shadow-xl max-h-[70vh] overflow-y-auto min-w-[16rem]">
           {results.length === 0 && <li className="px-3 py-3 text-sm text-muted-foreground">No results for “{query}”</li>}
           {results.map((r, i) => (
             <li key={r.href} role="option" aria-selected={i === active}>
@@ -90,7 +90,7 @@ export function HelpSearch({ items }: { items: SearchItem[] }) {
                 onMouseEnter={() => setActive(i)}
                 className={cn('w-full text-left rounded-lg px-3 py-2', i === active ? 'bg-white/10' : '')}
               >
-                <span className="block text-sm font-medium text-white">{r.title}</span>
+                <span className="block text-sm font-medium text-foreground">{r.title}</span>
                 <span className="block text-xs text-muted-foreground">{r.section}</span>
               </button>
             </li>

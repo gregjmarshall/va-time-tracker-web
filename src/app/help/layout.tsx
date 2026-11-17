@@ -31,7 +31,7 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <Link href="/help" className="flex items-center gap-2.5 flex-shrink-0" aria-label="pip help home">
             <PipMark size={30} className="rounded-[7px]" />
-            <PipWordmark height={18} className="text-white hidden sm:block" />
+            <PipWordmark height={18} className="text-foreground hidden sm:block" />
             <span className="text-sm font-semibold text-muted-foreground">Help</span>
           </Link>
           <div className="flex-1 min-w-0 flex justify-end sm:justify-center">

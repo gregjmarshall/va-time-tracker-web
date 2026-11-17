@@ -26,7 +26,7 @@ export function TeamTimesheets({ weekStart, onOpen }: { weekStart: string; onOpe
       <p className="text-sm text-muted-foreground">
         {waiting > 0 ? `${waiting} waiting for approval` : 'Nothing waiting for approval'} · {rows.filter((r) => r.status === 'DRAFT').length} not submitted
       </p>
-      <div className="rounded-xl border border-border">
+      <div className="rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -43,7 +43,7 @@ export function TeamTimesheets({ weekStart, onOpen }: { weekStart: string; onOpe
               <TableRow key={r.userId}>
                 <TableCell className="font-medium">{r.userName}</TableCell>
                 <TableCell>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{formatHm(r.totalSeconds) || '0:00'}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatHm(r.billableSeconds) || '0:00'}</TableCell>

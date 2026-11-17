@@ -44,7 +44,7 @@ export function RetainerUsageBars({ clientId, projectId, months = 12 }: {
               {dayjs(`${r.month}-01`).format('MMM YY')}
               {r.live && <span className="block text-[10px] leading-none">so far</span>}
             </span>
-            <div className="relative h-2.5 rounded-full bg-white/5" title={`${fmt(actual)} of ${fmt(allowance)}`}>
+            <div className="relative h-2.5 rounded-[2px] bg-white/5" title={`${fmt(actual)} of ${fmt(allowance)}`}>
               <div className="absolute inset-y-0 left-0 rounded-l-full bg-teal" style={{ width: pct(under) }} />
               {over > 0 && (
                 <div className="absolute inset-y-0 rounded-r-full bg-coral" style={{ left: pct(allowance), width: pct(over) }} />

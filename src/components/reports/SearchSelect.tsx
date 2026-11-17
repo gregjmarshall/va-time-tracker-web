@@ -40,7 +40,7 @@ export function SearchSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          'inline-flex items-center gap-2 max-w-64 px-3 py-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50',
+          'inline-flex items-center gap-2 max-w-64 px-3 py-2 rounded-lg text-sm font-semibold border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50',
           selected ? 'border-primary/40 bg-primary/10 text-foreground' : 'border-white/10 bg-white/5 text-foreground hover:bg-white/10'
         )}
       >

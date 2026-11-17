@@ -315,14 +315,14 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
       <Dialog open={showStopDialog} onOpenChange={(v) => { if (!v) setShowStopDialog(false) }}>
         <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-white text-lg">Which project is this for?</DialogTitle>
+            <DialogTitle className="text-foreground text-lg">Which project is this for?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground -mt-1 mb-4">
             Select a project to save your{' '}
-            <span className="text-white font-semibold">{formatElapsed(elapsed)}</span> entry.
+            <span className="text-foreground font-semibold">{formatElapsed(elapsed)}</span> entry.
             Click away to keep the timer running.
           </p>
-          <div className="rounded-xl border border-white/5 overflow-hidden">
+          <div className="rounded-lg border border-white/5 overflow-hidden">
             <ProjectSearchList
               clientList={clientList}
               projectList={projectList}
@@ -337,10 +337,10 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
       <Dialog open={showDiscardDialog} onOpenChange={(v) => { if (!v) setShowDiscardDialog(false) }}>
         <DialogContent className="sm:max-w-sm bg-[#1a1d3d] border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-white text-lg">Discard this timer?</DialogTitle>
+            <DialogTitle className="text-foreground text-lg">Discard this timer?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground -mt-1">
-            The <span className="text-white font-semibold">{formatElapsed(elapsed)}</span> tracked won&apos;t be saved. This can&apos;t be undone.
+            The <span className="text-foreground font-semibold">{formatElapsed(elapsed)}</span> tracked won&apos;t be saved. This can&apos;t be undone.
           </p>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowDiscardDialog(false)} disabled={discardMutation.isPending}>Keep timer</Button>
@@ -359,13 +359,13 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         <DescriptionInput
           ref={descriptionRef}
           required={descriptionRequired}
-          className="h-10 bg-white/5 border-white/10 focus:border-primary/40 rounded-xl px-4 text-sm placeholder:text-muted-foreground/50"
+          className="h-10 bg-white/5 border-white/10 focus:border-primary/40 rounded-lg px-4 text-sm placeholder:text-muted-foreground/50"
           value={description}
           onChange={setDescription}
           onBlur={handleDescriptionBlur}
         />
       </div>
-      <div className="w-24 sm:w-32 lg:w-56 xl:w-72 flex-shrink-0 [&>div>button]:py-2 [&>div>button]:rounded-xl">
+      <div className="w-24 sm:w-32 lg:w-56 xl:w-72 flex-shrink-0 [&>div>button]:py-2 [&>div>button]:rounded-lg">
         <ProjectPicker
           clientList={clientList}
           projectList={projectList}
@@ -375,7 +375,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         />
       </div>
       <div className="w-16 sm:w-20 flex-shrink-0 text-right">
-        <span className={`num text-base sm:text-lg font-semibold ${isActive ? 'text-white' : 'text-muted-foreground/40'}`}>
+        <span className={`num text-base sm:text-lg font-semibold ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}>
           {formatElapsed(elapsed)}
         </span>
         {isPaused && <span className="block text-[9px] font-black text-sun uppercase tracking-[0.15em] -mt-0.5">Paused</span>}
@@ -384,12 +384,12 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         aria-label={isRunning ? 'Pause timer' : isPaused ? 'Resume timer' : 'Start timer'}
         title={isRunning ? 'Pause' : isPaused ? 'Resume' : 'Start'}
         className={`relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ${
-          isRunning ? 'bg-primary shadow-[0_0_20px_rgba(124,92,246,0.55)] ring-2 ring-teal/70' : 'bg-primary hover:bg-primary/90'
+          isRunning ? 'bg-primary ring-2 ring-primary/30' : 'bg-primary hover:bg-primary/90'
         }`}>
         {isRunning ? (
-          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
+          <svg className="w-4 h-4 text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
         ) : (
-          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+          <svg className="w-4 h-4 text-foreground ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
         )}
       </button>
       {isActive && (

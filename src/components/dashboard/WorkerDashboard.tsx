@@ -76,7 +76,7 @@ function WeeklyChart({ dailyHours, liveElapsedHours }: { dailyHours: number[], l
       <div className="flex gap-2 mt-2 mb-5">
         {days.map((d, i) => (
           <div key={i} className="flex-1 flex justify-center">
-            <span className={`text-[11px] font-medium ${i === todayIdx ? 'text-white' : 'text-muted-foreground/50'}`}>
+            <span className={`text-[11px] font-medium ${i === todayIdx ? 'text-foreground' : 'text-muted-foreground/50'}`}>
               {d}
             </span>
           </div>
@@ -102,7 +102,7 @@ function EntryRow({
   return (
     <div className="flex items-center gap-3 sm:gap-6 py-4 border-b border-white/5 last:border-0 group transition-colors">
       <div className="w-24 sm:w-40 flex-shrink-0">
-        <p className="num text-[13px] font-semibold text-white">
+        <p className="num text-[13px] font-semibold text-foreground">
           {formatTime(entry.startedAt)}{entry.endedAt ? ` – ${formatTime(entry.endedAt)}` : ''}
         </p>
         <p className="num text-[12px] text-muted-foreground/60 mt-1">{formatDuration(entry.durationSeconds)}</p>
@@ -113,7 +113,7 @@ function EntryRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-white truncate">{entry.description || '—'}</p>
+        <p className="text-[15px] font-semibold text-foreground truncate">{entry.description || '—'}</p>
         {(clientName || project || entry.isCover) && (
           <p className="text-[12px] font-medium text-muted-foreground/50 mt-1 truncate">
             {[clientName, project?.name].filter(Boolean).join(' · ')}
@@ -123,7 +123,7 @@ function EntryRow({
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger aria-label="Entry actions" className="p-1.5 rounded-lg sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 transition-all text-muted-foreground/50 hover:text-white hover:bg-white/5 flex-shrink-0 cursor-pointer">
+        <DropdownMenuTrigger aria-label="Entry actions" className="p-1.5 rounded-lg sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100 transition-all text-muted-foreground/50 hover:text-foreground hover:bg-white/5 flex-shrink-0 cursor-pointer">
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
           </svg>
@@ -255,7 +255,7 @@ export function WorkerDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-6 lg:px-10 pt-8 pb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-white">{greeting}, {firstName}</h1>
+          <h1 className="text-3xl font-normal text-foreground">{greeting}, {firstName}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{dayjs().format('dddd, D MMMM YYYY')}</p>
         </div>
       </div>
@@ -269,12 +269,12 @@ export function WorkerDashboard() {
             <div className="xl:col-span-8 space-y-6 min-w-0">
 
               {/* Recent entries */}
-              <div className="rounded-2xl glass-card overflow-hidden">
+              <div className="rounded-lg glass-card overflow-hidden">
                 <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-white/5">
                   <h2 className="text-sm font-semibold">Recent entries</h2>
                   <button
                     onClick={() => setManualOpen(true)}
-                    className="text-sm font-medium text-white/70 hover:text-white border border-white/10 rounded-lg px-3 py-1.5 hover:bg-white/5 transition-colors whitespace-nowrap"
+                    className="text-sm font-medium text-foreground/70 hover:text-foreground border border-white/10 rounded-lg px-3 py-1.5 hover:bg-white/5 transition-colors whitespace-nowrap"
                   >
                     + Manual entry
                   </button>
@@ -314,7 +314,7 @@ export function WorkerDashboard() {
               <MyCoverCard />
 
               {/* Today's summary */}
-              <div className="rounded-2xl glass-card p-6">
+              <div className="rounded-lg glass-card p-6">
                 <h2 className="text-sm font-semibold mb-6">Today&apos;s summary</h2>
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
@@ -334,7 +334,7 @@ export function WorkerDashboard() {
                             />
                           </svg>
                         )}
-                        <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT.sky}26`, color: ACCENT.sky }}>
+                        <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.sky}26`, color: ACCENT.sky }}>
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
@@ -346,7 +346,7 @@ export function WorkerDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: `${ACCENT.teal}26`, color: ACCENT.teal }}>
+                      <div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: `${ACCENT.teal}26`, color: ACCENT.teal }}>
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -367,7 +367,7 @@ export function WorkerDashboard() {
               </div>
 
               {/* Weekly chart */}
-              <div className="rounded-2xl glass-card p-6">
+              <div className="rounded-lg glass-card p-6">
                 <WeeklyChart dailyHours={dailyHours} liveElapsedHours={liveElapsed / 3600} />
               </div>
 
@@ -378,13 +378,13 @@ export function WorkerDashboard() {
 
           {/* Recent clients */}
           {recentClients.length > 0 && (
-            <div className="rounded-2xl glass-card overflow-hidden">
+            <div className="rounded-lg glass-card overflow-hidden">
               <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/5">
                 <h2 className="text-sm font-semibold">Recent clients</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4 p-4 sm:p-6">
                 {recentClients.slice(0, 4).map(({ client, secs, lastProject }) => (
-                  <div key={client.clientId} className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+                  <div key={client.clientId} className="flex items-center gap-4 p-4 rounded-lg border border-white/5 bg-white/[0.02]">
                     <div className="w-11 h-11 rounded-lg flex items-center justify-center text-base font-semibold flex-shrink-0" style={{ background: `${clientColor(client.clientId)}26`, color: clientColor(client.clientId) }}>
                       {client.name[0].toUpperCase()}
                     </div>
@@ -397,7 +397,7 @@ export function WorkerDashboard() {
                 ))}
               </div>
               <div className="px-4 sm:px-6 py-4 border-t border-white/5 flex justify-end">
-                <Link href="/dashboard/clients" className="text-[13px] text-primary hover:text-white font-semibold flex items-center gap-2 transition-all">
+                <Link href="/dashboard/clients" className="text-[13px] text-primary hover:text-foreground font-semibold flex items-center gap-2 transition-all">
                   View all clients
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
@@ -426,7 +426,7 @@ export function WorkerDashboard() {
             <DialogTitle>Delete this entry?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            <span className="text-white font-semibold">{deleteEntry?.description || 'Untitled entry'}</span>
+            <span className="text-foreground font-semibold">{deleteEntry?.description || 'Untitled entry'}</span>
             {deleteEntry && <> · {formatDuration(deleteEntry.durationSeconds)}</>}. This can&apos;t be undone.
           </p>
           <DialogFooter>

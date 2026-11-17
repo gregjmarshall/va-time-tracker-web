@@ -11,7 +11,7 @@ export function BackToApp() {
   return (
     <Link
       href={signedIn ? '/dashboard' : '/login'}
-      className="flex-shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs sm:text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 transition-colors whitespace-nowrap"
+      className="flex-shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs sm:text-sm font-semibold text-foreground/80 hover:text-foreground hover:bg-white/10 transition-colors whitespace-nowrap"
     >
       {signedIn ? '← Back to pip' : 'Sign in'}
     </Link>

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Instrument_Sans, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/providers/providers'
 
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
-const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
+const ui = Instrument_Sans({ variable: '--font-ui', subsets: ['latin'] })
+const serif = Instrument_Serif({ variable: '--font-serif', subsets: ['latin'], weight: '400' })
+const num = IBM_Plex_Mono({ variable: '--font-num', subsets: ['latin'], weight: ['400', '500'] })
 
 export const metadata: Metadata = {
   title: 'pip',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${ui.variable} ${serif.variable} ${num.variable} h-full antialiased`}>
       <body className="h-full">
         <Providers>{children}</Providers>
       </body>

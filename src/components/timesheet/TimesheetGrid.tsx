@@ -114,7 +114,7 @@ export function TimesheetGrid({ week, viewedUserId, queryKey }: { week: Timeshee
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-border text-xs text-muted-foreground">

@@ -6,8 +6,8 @@ Team members can't sign themselves up. An Admin or Manager invites you from the 
 
 1. Open the invite link from the email pip sent you, or from your manager.
 2. Enter **your name** and **choose a password**. Your email is already filled in.
-3. Press **Accept invite**. You're signed in and land on **Overview**.
-4. Check **Projects** to see what you can track time to. If it's empty, ask your manager to add you to some projects.
+3. Press **Accept invite**. You're signed in and land on **Overview**, where a **Welcome** card walks you through the basics.
+4. Check **Projects** to see what you can track time to. If you're not on any yet, press **Ask to be added to projects**. Your manager sees the request on their **Team** page. When they add you, a note appears on your Overview and your projects show up in the timer straight away.
 
 An invite link works **once** and expires (after 7 days by default). If it says the invite has expired, was cancelled or has already been used, ask whoever invited you for a new link.
 

@@ -499,3 +499,13 @@ export interface OverviewResponse {
   /** Highest hours first */
   members: { userId: number; name: string; hours: number }[]
 }
+
+/** A team member asking to be put on projects. name/email are filled in for Managers' list. */
+export interface AccessRequest {
+  requestId: number
+  userId: number
+  message: string | null
+  createdAt: string
+  name?: string | null
+  email?: string | null
+}

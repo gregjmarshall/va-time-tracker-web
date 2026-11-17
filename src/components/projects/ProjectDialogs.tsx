@@ -131,6 +131,7 @@ export function ProjectTeamDialog({ project, onClose }: { project: ProjectOvervi
       invalidate()
       queryClient.invalidateQueries({ queryKey: ['member-access'] })
       queryClient.invalidateQueries({ queryKey: ['member-history'] })
+      queryClient.invalidateQueries({ queryKey: ['access-requests'] })
       toast.success(`Team updated for ${project.name}`)
       onClose()
     },

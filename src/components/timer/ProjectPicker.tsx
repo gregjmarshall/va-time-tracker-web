@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { ClientResponse, ProjectResponse } from '@/lib/types'
+import { RequestAccessButton } from '@/components/onboarding/RequestAccess'
 
 const Chevron = ({ dir }: { dir: 'right' | 'left' | 'down' }) => (
   <svg className={dir === 'left' ? 'w-3 h-3' : 'w-4 h-4 text-muted-foreground/30'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={dir === 'left' ? 3 : 2.5}>
@@ -69,7 +70,10 @@ export function ProjectSearchList({ clientList, projectList, onSelect, disabled,
             ))
         ) : clientId === null ? (
           clientsWithProjects.length === 0
-            ? <p className="text-sm text-muted-foreground text-center py-8">You&apos;re not on any projects yet.<br />Ask your manager to add you.</p>
+            ? <div className="text-sm text-muted-foreground text-center px-4 py-6 space-y-3">
+                <p>You&apos;re not on any projects yet.</p>
+                <RequestAccessButton size="sm" />
+              </div>
             : clientsWithProjects.map((c) => (
               <button key={c.clientId} type="button" className={`${rowClass} flex items-center justify-between`}
                 onClick={() => setClientId(c.clientId)}>

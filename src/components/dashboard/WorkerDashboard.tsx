@@ -15,6 +15,8 @@ import { timeEntries, projects as projectsApi, clients as clientsApi } from '@/l
 import { useAuthStore } from '@/stores/auth'
 import type { ProjectResponse, TimeEntryResponse } from '@/lib/types'
 import { invalidateTimeData } from '@/lib/queries'
+import { AccessUpdates } from '@/components/onboarding/AccessUpdates'
+import { FirstDayCard } from '@/components/onboarding/FirstDayCard'
 import { ACCENT, clientColor } from '@/lib/colors'
 
 dayjs.extend(isoWeek)
@@ -264,6 +266,8 @@ export function WorkerDashboard() {
       {/* Body */}
       <div className="flex-1 px-4 sm:px-6 lg:px-10 pb-10">
         <div className="max-w-7xl mx-auto space-y-6">
+          <AccessUpdates />
+          <FirstDayCard projects={projectList} clients={clientList} hasEntries={(recentData?.entries?.length ?? 0) > 0} />
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
             {/* ── Left column ── */}

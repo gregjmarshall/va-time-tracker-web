@@ -39,3 +39,10 @@ Managers can only manage Team members. Nobody can change their own role or deact
 ## Member pages
 
 Click a name to open their page, with hours, billable share, hours by client, recent entries, access and their change **History** for this week or this month.
+
+## Requests for access
+
+When a team member presses **Ask to be added to projects**, a **Waiting for access** box appears at the top of the Team page, and Team in the sidebar shows a count.
+
+- **Give access** opens their access settings. Once you save them with at least one project or client, the request closes.
+- **Dismiss** closes the request without giving them access.

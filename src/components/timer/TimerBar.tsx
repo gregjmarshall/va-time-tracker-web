@@ -21,7 +21,9 @@ function formatElapsed(s: number) {
 
 // ── Pause session persistence ─────────────────────────────────────────────────
 
-const PAUSE_KEY = 'va-timer-paused-session'
+// Per account (workspace + user): a paused timer must never follow you into another login.
+const LEGACY_PAUSE_KEY = 'va-timer-paused-session'
+const pauseKey = (workspaceId?: number, userId?: number) => `va-timer-paused-session:${workspaceId ?? 0}:${userId ?? 0}`
 
 interface PausedSession {
   accumuledSeconds: number
@@ -31,14 +33,18 @@ interface PausedSession {
   selectedProjectId: number | null
 }
 
-function savePause(s: PausedSession) {
-  try { localStorage.setItem(PAUSE_KEY, JSON.stringify(s)) } catch { /* */ }
+function savePause(key: string, s: PausedSession) {
+  try { localStorage.setItem(key, JSON.stringify(s)) } catch { /* */ }
 }
-function loadPause(): PausedSession | null {
-  try { const r = localStorage.getItem(PAUSE_KEY); return r ? JSON.parse(r) : null } catch { return null }
+function loadPause(key: string): PausedSession | null {
+  try {
+    localStorage.removeItem(LEGACY_PAUSE_KEY) // shared across logins; never trust it
+    const r = localStorage.getItem(key)
+    return r ? JSON.parse(r) : null
+  } catch { return null }
 }
-function clearPause() {
-  try { localStorage.removeItem(PAUSE_KEY) } catch { /* */ }
+function clearPause(key: string) {
+  try { localStorage.removeItem(key) } catch { /* */ }
 }
 
 // ── TimerBar: slim timer row shown at the top of every page ─────────────────────────────────────────────────────────────
@@ -54,7 +60,8 @@ interface Props {
 type TimerState = 'idle' | 'running' | 'paused'
 
 export function TimerBar({ activeEntry, pausedSession, projectList, clientList, onChanged }: Props) {
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
+  const PAUSE_KEY = pauseKey(user?.workspaceId, user?.userId)
   const queryClient = useQueryClient()
 
   // ── Timer state ───────────────────────────────────────────────────
@@ -70,7 +77,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         selectedProjectId: pausedSession.projectId,
       }
     }
-    return loadPause()
+    return loadPause(PAUSE_KEY)
   })
 
   const [timerState, setTimerState] = useState<TimerState>(() => {
@@ -164,7 +171,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
         description,
         selectedProjectId,
       }
-      savePause(session)
+      savePause(PAUSE_KEY, session)
       saveSessionMutation.mutate({
         accumulatedSeconds: accumulatedRef.current,
         entryIds: segmentIdsRef.current,
@@ -240,7 +247,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   const clearSessionMutation = useMutation({
     mutationFn: () => timerSessionApi.clear(token!),
     onSuccess: () => {
-      clearPause()
+      clearPause(PAUSE_KEY)
       queryClient.invalidateQueries({ queryKey: ['timer-session'] })
     },
   })

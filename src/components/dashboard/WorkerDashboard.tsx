@@ -103,9 +103,9 @@ function EntryRow({
   onEdit: () => void; onDelete: () => void
 }) {
   return (
-    <div className="flex items-center gap-3 sm:gap-6 py-4 border-b border-white/5 last:border-0 group transition-colors">
-      <div className="w-24 sm:w-40 flex-shrink-0">
-        <p className="num text-[13px] font-semibold text-foreground">
+    <div className="flex items-center gap-2.5 sm:gap-6 py-4 border-b border-white/5 last:border-0 group transition-colors">
+      <div className="w-[104px] sm:w-40 flex-shrink-0">
+        <p className="num text-[12px] sm:text-[13px] font-semibold text-foreground whitespace-nowrap">
           {formatTime(entry.startedAt)}{entry.endedAt ? ` – ${formatTime(entry.endedAt)}` : ''}
         </p>
         <p className="num text-[12px] text-muted-foreground/60 mt-1">{formatDuration(entry.durationSeconds)}</p>

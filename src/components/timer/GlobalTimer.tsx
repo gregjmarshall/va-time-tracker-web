@@ -39,7 +39,7 @@ export function GlobalTimer() {
   })
 
   if (!active.isFetched || !session.isFetched) {
-    return <div className="h-10 w-full rounded-lg bg-white/5 animate-pulse" aria-hidden />
+    return <div className="h-10 flex-1 min-w-0 rounded-lg bg-white/5 animate-pulse" aria-hidden />
   }
 
   return (

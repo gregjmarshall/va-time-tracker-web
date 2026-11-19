@@ -326,16 +326,16 @@ export default function ReportsPage() {
                   <HoursChart buckets={summary.chart.buckets} granularity={summary.chart.granularity} />
                 </div>
               )}
-              <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+              <div className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Client</TableHead>
-                      <TableHead>Project</TableHead>
+                      <TableHead className="hidden sm:table-cell">Project</TableHead>
                       <TableHead className="text-right">Hours</TableHead>
-                      <TableHead className="text-right">Rounded</TableHead>
+                      <TableHead className="text-right hidden lg:table-cell">Rounded</TableHead>
                       <TableHead className="text-right">Billable</TableHead>
-                      <TableHead className="text-right">Holiday cover</TableHead>
+                      <TableHead className="text-right hidden lg:table-cell">Holiday cover</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -350,12 +350,13 @@ export default function ReportsPage() {
                       <TableRow key={`${row.clientId}-${row.projectId}`}>
                         <TableCell className="font-medium">
                           <span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: clientColor(row.clientId) }} />{row.clientName}</span>
+                          <p className="sm:hidden pl-4 text-xs font-normal text-muted-foreground whitespace-normal">{row.projectName}</p>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{row.projectName}</TableCell>
+                        <TableCell className="text-muted-foreground hidden sm:table-cell">{row.projectName}</TableCell>
                         <TableCell className="text-right num">{fh(row.totalHours)}</TableCell>
-                        <TableCell className="text-right num text-muted-foreground">{fh(row.roundedTotalHours)}</TableCell>
+                        <TableCell className="text-right num text-muted-foreground hidden lg:table-cell">{fh(row.roundedTotalHours)}</TableCell>
                         <TableCell className="text-right num text-muted-foreground">{fh(row.billableRoundedTotalHours)}</TableCell>
-                        <TableCell className="text-right num text-muted-foreground">
+                        <TableCell className="text-right num text-muted-foreground hidden lg:table-cell">
                           {row.coverRoundedTotalHours > 0 ? <span className="text-amber-400">{fh(row.coverRoundedTotalHours)}</span> : '—'}
                         </TableCell>
                       </TableRow>
@@ -377,11 +378,11 @@ export default function ReportsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
-                      {canManage && <TableHead>Member</TableHead>}
+                      {canManage && <TableHead className="hidden sm:table-cell">Member</TableHead>}
                       <TableHead>Client / project</TableHead>
-                      <TableHead>Description</TableHead>
+                      <TableHead className="hidden sm:table-cell">Description</TableHead>
                       <TableHead className="text-right">Rounded</TableHead>
-                      <TableHead></TableHead>
+                      <TableHead className="hidden sm:table-cell"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -395,18 +396,20 @@ export default function ReportsPage() {
                         <TableCell className="whitespace-nowrap">
                           <p className="font-medium">{dayjs(e.startedAt).format('ddd D MMM')}</p>
                           <p className="num text-xs text-muted-foreground">{dayjs(e.startedAt).format('HH:mm')}–{e.endedAt ? dayjs(e.endedAt).format('HH:mm') : 'now'}</p>
+                          {canManage && <p className="sm:hidden text-xs text-muted-foreground">{e.userName}</p>}
                         </TableCell>
-                        {canManage && <TableCell className="whitespace-nowrap">{e.userName}</TableCell>}
+                        {canManage && <TableCell className="whitespace-nowrap hidden sm:table-cell">{e.userName}</TableCell>}
                         <TableCell>
                           <p className="inline-flex items-center gap-2 font-medium">
                             {e.clientId != null && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: clientColor(e.clientId) }} />}
                             {e.clientName ?? '—'}
                           </p>
                           <p className="text-xs text-muted-foreground">{e.projectName ?? 'No project'}</p>
+                          {e.description && <p className="sm:hidden mt-1 text-xs text-muted-foreground whitespace-normal">{e.description}</p>}
                         </TableCell>
-                        <TableCell className="max-w-72 whitespace-normal text-muted-foreground">{e.description || '—'}</TableCell>
+                        <TableCell className="max-w-72 whitespace-normal text-muted-foreground hidden sm:table-cell">{e.description || '—'}</TableCell>
                         <TableCell className="text-right num">{e.isRunning ? 'running' : fh((e.roundedDurationSeconds ?? 0) / 3600)}</TableCell>
-                        <TableCell className="whitespace-nowrap text-right">
+                        <TableCell className="whitespace-nowrap text-right hidden sm:table-cell">
                           <span className="inline-flex gap-1">
                             {e.isBillable
                               ? <Badge variant="secondary" className="text-teal">Billable</Badge>

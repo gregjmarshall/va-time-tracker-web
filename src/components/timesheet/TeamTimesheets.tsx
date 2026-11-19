@@ -26,15 +26,15 @@ export function TeamTimesheets({ weekStart, onOpen }: { weekStart: string; onOpe
       <p className="text-sm text-muted-foreground">
         {waiting > 0 ? `${waiting} waiting for approval` : 'Nothing waiting for approval'} · {rows.filter((r) => r.status === 'DRAFT').length} not submitted
       </p>
-      <div className="rounded-lg border border-border">
+      <div className="rounded-lg border border-border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Person</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Hours</TableHead>
-              <TableHead className="text-right">Billable</TableHead>
-              <TableHead>Submitted</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">Billable</TableHead>
+              <TableHead className="hidden sm:table-cell">Submitted</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
@@ -46,8 +46,8 @@ export function TeamTimesheets({ weekStart, onOpen }: { weekStart: string; onOpe
                   <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${STATUS_CLASS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{formatHm(r.totalSeconds) || '0:00'}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatHm(r.billableSeconds) || '0:00'}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{r.submittedAt ? dayjs(r.submittedAt).format('ddd D MMM, HH:mm') : '—'}</TableCell>
+                <TableCell className="text-right tabular-nums hidden sm:table-cell">{formatHm(r.billableSeconds) || '0:00'}</TableCell>
+                <TableCell className="text-muted-foreground text-xs hidden sm:table-cell">{r.submittedAt ? dayjs(r.submittedAt).format('ddd D MMM, HH:mm') : '—'}</TableCell>
                 <TableCell className="text-right">
                   <Button size="sm" variant={r.status === 'SUBMITTED' ? 'default' : 'outline'} onClick={() => onOpen(r.userId)}>
                     {r.status === 'SUBMITTED' ? 'Review' : 'Open'}

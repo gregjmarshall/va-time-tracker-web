@@ -148,10 +148,10 @@ function ManagerProjects() {
           <thead className="border-b border-white/5">
             <tr>
               <th className={TH}>Project</th>
-              <th className={`${TH} text-right`}>This month</th>
+              <th className={`${TH} text-right hidden sm:table-cell`}>This month</th>
               <th className={TH}>Total vs budget</th>
               <th className={`${TH} hidden lg:table-cell`}>Team</th>
-              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
+              <th className={`${TH} hidden lg:table-cell`}>Last tracked</th>
               <th className={TH} />
             </tr>
           </thead>
@@ -165,7 +165,7 @@ function ManagerProjects() {
             {shown.map((p) => (
               <tr key={p.projectId} className="border-b border-white/5 last:border-0">
                 <td className={TD}>
-                  <div className="flex items-center gap-2.5 min-w-0 max-w-56">
+                  <div className="flex items-center gap-2.5 min-w-0 max-w-36 sm:max-w-56">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: clientColor(p.clientId) }} />
                     <div className="min-w-0">
                       <p className="font-medium truncate">{p.name}</p>
@@ -173,7 +173,7 @@ function ManagerProjects() {
                     </div>
                   </div>
                 </td>
-                <td className={`${TD} text-right num whitespace-nowrap`}>{fh(Number(p.hoursThisMonth))}</td>
+                <td className={`${TD} text-right num whitespace-nowrap hidden sm:table-cell`}>{fh(Number(p.hoursThisMonth))}</td>
                 <td className={TD}>
                   {p.budgetHours ? <BudgetBar used={Number(p.totalHours)} budget={p.budgetHours} /> : (
                     <span className="text-xs text-muted-foreground"><span className="num text-foreground">{fh(Number(p.totalHours))}</span> · no budget</span>
@@ -184,7 +184,7 @@ function ManagerProjects() {
                     <TeamStack ids={p.memberIds} people={peopleById} />
                   </button>
                 </td>
-                <td className={`${TD} hidden md:table-cell text-muted-foreground whitespace-nowrap`}>{lastTracked(p)}</td>
+                <td className={`${TD} hidden lg:table-cell text-muted-foreground whitespace-nowrap`}>{lastTracked(p)}</td>
                 <td className={`${TD} text-right`}>
                   <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${p.name}`} />}>

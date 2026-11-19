@@ -358,15 +358,15 @@ export default function HolidayCoverPage() {
         </TabsList>
       </Tabs>
 
-      <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Covering</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Dates</TableHead>
+              <TableHead className="hidden sm:table-cell">Dates</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Hours logged</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">Hours logged</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -391,12 +391,15 @@ export default function HolidayCoverPage() {
                   <p className="text-sm font-medium">{c.userName}</p>
                   {c.note && <p className="text-xs text-muted-foreground truncate max-w-[16rem]">{c.note}</p>}
                 </TableCell>
-                <TableCell className="text-sm">{c.clientName}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{coverDates(c.startDate, c.endDate)}</TableCell>
+                <TableCell className="text-sm">
+                  {c.clientName}
+                  <p className="sm:hidden text-xs text-muted-foreground">{coverDates(c.startDate, c.endDate)} · <span className="font-mono">{fh(c.hoursLogged)}</span></p>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{coverDates(c.startDate, c.endDate)}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={`text-xs ${STATUS_BADGE[c.status].className}`}>{STATUS_BADGE[c.status].label}</Badge>
                 </TableCell>
-                <TableCell className="text-right font-mono text-sm">{fh(c.hoursLogged)}</TableCell>
+                <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{fh(c.hoursLogged)}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-2">

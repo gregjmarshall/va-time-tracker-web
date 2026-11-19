@@ -135,6 +135,21 @@ export default function UsersPage() {
     })
   }
 
+  const visibilityButton = (u: (typeof members)[number]) => (
+    <button
+      onClick={() => visibility.mutate(u)}
+      disabled={!u.isActive}
+      className={`text-xs font-medium px-2.5 py-1 rounded-md border transition-all whitespace-nowrap ${
+        u.fullVisibility
+          ? 'bg-primary/10 border-primary/30 text-primary'
+          : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
+      }`}
+      title={u.fullVisibility ? 'Sees every client. Click to restrict to their access.' : 'Sees only their access. Click to show every client.'}
+    >
+      {u.fullVisibility ? 'All clients' : 'Their access'}
+    </button>
+  )
+
   return (
     <div className="page">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
@@ -178,8 +193,8 @@ export default function UsersPage() {
           <thead className="border-b border-white/5">
             <tr>
               <th className={TH}>Team member</th>
-              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
-              <th className={TH}>Visibility</th>
+              <th className={`${TH} hidden lg:table-cell`}>Last tracked</th>
+              <th className={`${TH} hidden sm:table-cell`}>Visibility</th>
               <th className={TH} />
             </tr>
           </thead>
@@ -196,21 +211,14 @@ export default function UsersPage() {
             )}
             {members.map((u) => (
               <tr key={u.userId} className={`border-b border-white/5 last:border-0 ${u.isActive ? '' : 'opacity-60'}`}>
-                <td className={TD}><MemberCell u={u} /></td>
-                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden md:table-cell`}>{lastTrackedLabel(u)}</td>
                 <td className={TD}>
-                  <button
-                    onClick={() => visibility.mutate(u)}
-                    disabled={!u.isActive}
-                    className={`text-xs font-medium px-2.5 py-1 rounded-md border transition-all whitespace-nowrap ${
-                      u.fullVisibility
-                        ? 'bg-primary/10 border-primary/30 text-primary'
-                        : 'bg-white/5 border-white/10 text-muted-foreground hover:text-foreground'
-                    }`}
-                    title={u.fullVisibility ? 'Sees every client. Click to restrict to their access.' : 'Sees only their access. Click to show every client.'}
-                  >
-                    {u.fullVisibility ? 'All clients' : 'Their access'}
-                  </button>
+                  <MemberCell u={u} />
+                  {/* Phones: the visibility toggle sits under the name instead of its own column */}
+                  <div className="sm:hidden mt-2 pl-11">{visibilityButton(u)}</div>
+                </td>
+                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden lg:table-cell`}>{lastTrackedLabel(u)}</td>
+                <td className={`${TD} hidden sm:table-cell`}>
+                  {visibilityButton(u)}
                 </td>
                 <td className={TD}>
                   <RowActions u={u} onEdit={() => setEditing(u)} onAccess={() => setAccessFor(u)} />
@@ -227,7 +235,7 @@ export default function UsersPage() {
             <tr>
               <th className={TH}>Name</th>
               <th className={TH}>Role</th>
-              <th className={`${TH} hidden md:table-cell`}>Last tracked</th>
+              <th className={`${TH} hidden lg:table-cell`}>Last tracked</th>
               <th className={TH} />
             </tr>
           </thead>
@@ -239,7 +247,7 @@ export default function UsersPage() {
               <tr key={u.userId} className={`border-b border-white/5 last:border-0 ${u.isActive ? '' : 'opacity-60'}`}>
                 <td className={TD}><MemberCell u={u} /></td>
                 <td className={TD}><Badge variant="secondary" className="text-xs">{roleLabel(u.role)}</Badge></td>
-                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden md:table-cell`}>{lastTrackedLabel(u)}</td>
+                <td className={`${TD} text-muted-foreground whitespace-nowrap hidden lg:table-cell`}>{lastTrackedLabel(u)}</td>
                 <td className={TD}><RowActions u={u} onEdit={() => setEditing(u)} /></td>
               </tr>
             ))}

@@ -361,8 +361,11 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
   )
 
   return (
-    <div className="flex items-center gap-2 sm:gap-3 w-full">
-      <div className="flex-[1.4] min-w-0">
+    // Below lg the bar is two rows (description, then project + clock + controls), so nothing
+    // gets squeezed to an icon on phones or next to the sidebar on tablets.
+    <div className="contents lg:flex lg:items-center lg:gap-3 lg:w-full">
+      {/* Phones: shares row 1 with the menu button. Tablets (no menu button): full row. */}
+      <div className="w-[calc(100%-2.75rem)] md:w-full lg:w-auto lg:flex-[1.4] min-w-0">
         <DescriptionInput
           ref={descriptionRef}
           required={descriptionRequired}
@@ -372,7 +375,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           onBlur={handleDescriptionBlur}
         />
       </div>
-      <div className="flex-1 min-w-0 max-w-72 [&>div>button]:py-2 [&>div>button]:rounded-lg">
+      <div className="flex-1 min-w-0 lg:max-w-72 [&>div>button]:py-2 [&>div>button]:rounded-lg">
         <ProjectPicker
           clientList={clientList}
           projectList={projectList}
@@ -381,7 +384,7 @@ export function TimerBar({ activeEntry, pausedSession, projectList, clientList, 
           placeholder="Select project"
         />
       </div>
-      <div className="w-16 sm:w-20 flex-shrink-0 text-right">
+      <div className="min-w-16 sm:min-w-20 flex-shrink-0 text-right">
         <span className={`num text-base sm:text-lg font-semibold ${isActive ? 'text-foreground' : 'text-muted-foreground/40'}`}>
           {formatElapsed(elapsed)}
         </span>

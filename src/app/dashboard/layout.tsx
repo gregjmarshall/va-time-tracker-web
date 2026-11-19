@@ -235,18 +235,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main: timer bar on every page, content scrolls beneath it */}
       <div className="flex-1 min-w-0 flex flex-col bg-background">
-        <header className="relative z-30 flex-shrink-0 flex items-center gap-3 border-b border-border bg-background px-4 sm:px-6 py-3">
+        <header className="relative z-30 flex-shrink-0 flex flex-wrap lg:flex-nowrap items-center gap-2 lg:gap-3 border-b border-border bg-background px-4 sm:px-6 py-3">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
-            className="md:hidden -ml-1 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
+            className="md:hidden -ml-1 p-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
             aria-label="Open menu"
             aria-controls="dashboard-nav"
             aria-expanded={navOpen}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" /></svg>
           </button>
-          <div className="flex-1 min-w-0"><GlobalTimer /></div>
+          {/* Below lg the timer's parts flow straight into the header so its second row can use the full width */}
+          <div className="contents lg:block lg:flex-1 lg:min-w-0"><GlobalTimer /></div>
         </header>
         <main className="flex-1 overflow-y-auto">
           {children}

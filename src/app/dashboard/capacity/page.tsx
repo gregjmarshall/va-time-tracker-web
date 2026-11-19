@@ -195,16 +195,16 @@ export default function CapacityPage() {
         ))}
       </div>
 
-      <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-lg border border-border bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Team member</TableHead>
-              <TableHead className="w-40">Usage</TableHead>
-              <TableHead className="text-right">Allocated</TableHead>
+              <TableHead className="w-40 hidden lg:table-cell">Usage</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">Allocated</TableHead>
               <TableHead className="text-right">Used</TableHead>
               <TableHead className="text-right">Remaining</TableHead>
-              <TableHead className="text-right">Holiday cover</TableHead>
+              <TableHead className="text-right hidden lg:table-cell">Holiday cover</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -223,15 +223,15 @@ export default function CapacityPage() {
                     <TableCell>
                       <span className="inline-block w-4 text-muted-foreground">{open ? '▾' : '▸'}</span>
                       <span className="text-sm font-medium">{r.userName}</span>
-                      <span className="text-xs text-muted-foreground ml-2">
+                      <span className="block sm:inline pl-4 sm:pl-0 text-xs text-muted-foreground sm:ml-2">
                         {r.clients.length} client{r.clients.length === 1 ? '' : 's'}
                       </span>
                     </TableCell>
-                    <TableCell><UsageBar used={r.usedHours} allocated={r.allocatedHours} /></TableCell>
-                    <TableCell className="text-right font-mono text-sm">{r.allocatedHours > 0 ? fh(r.allocatedHours) : '—'}</TableCell>
+                    <TableCell className="hidden lg:table-cell"><UsageBar used={r.usedHours} allocated={r.allocatedHours} /></TableCell>
+                    <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{r.allocatedHours > 0 ? fh(r.allocatedHours) : '—'}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fh(r.usedHours)}</TableCell>
                     <TableCell className="text-right font-mono text-sm"><Remaining hours={r.remainingHours} allocated={r.allocatedHours} /></TableCell>
-                    <TableCell className="text-right font-mono text-sm">
+                    <TableCell className="text-right font-mono text-sm hidden lg:table-cell">
                       {r.coverHours > 0 ? <span className="text-amber-400">{fh(r.coverHours)}</span> : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -258,11 +258,11 @@ export default function CapacityPage() {
                             <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-amber-400">Cover</span>
                           )}
                         </TableCell>
-                        <TableCell><UsageBar used={c.usedHours} allocated={c.allocatedHours} /></TableCell>
-                        <TableCell className="text-right font-mono text-xs text-muted-foreground">{c.allocatedHours > 0 ? fh(c.allocatedHours) : '—'}</TableCell>
+                        <TableCell className="hidden lg:table-cell"><UsageBar used={c.usedHours} allocated={c.allocatedHours} /></TableCell>
+                        <TableCell className="text-right font-mono text-xs text-muted-foreground hidden sm:table-cell">{c.allocatedHours > 0 ? fh(c.allocatedHours) : '—'}</TableCell>
                         <TableCell className="text-right font-mono text-xs text-muted-foreground">{fh(c.usedHours)}</TableCell>
                         <TableCell className="text-right font-mono text-xs text-muted-foreground"><Remaining hours={remaining} allocated={c.allocatedHours} /></TableCell>
-                        <TableCell className="text-right font-mono text-xs">
+                        <TableCell className="text-right font-mono text-xs hidden lg:table-cell">
                           {c.coverHours > 0 ? <span className="text-amber-400">{fh(c.coverHours)}</span> : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell />

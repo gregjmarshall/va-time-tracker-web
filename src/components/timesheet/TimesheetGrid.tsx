@@ -115,7 +115,8 @@ export function TimesheetGrid({ week, viewedUserId, queryKey }: { week: Timeshee
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full min-w-[620px] text-sm">
+        {/* Empty: no min width, so the message isn't cut off on phones */}
+        <table className={`w-full text-sm ${rows.length ? 'min-w-[620px]' : ''}`}>
           <thead>
             <tr className="border-b border-border text-xs text-muted-foreground">
               <th className="text-left font-medium px-3 py-2 sticky left-0 z-10 bg-card">Project</th>
